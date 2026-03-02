@@ -909,7 +909,7 @@ Tóm lại cho dự án SMILE HR:
 Việc bạn không thấy Pydantic trong Flask là bình thường, vì Flask dùng các cách "thủ công" hơn. Khi bạn chuyển sang FastAPI, Pydantic sẽ là công cụ đắc lực nhất giúp bạn:
 Dọn dẹp code: Bỏ hết các đoạn if/else kiểm tra dữ liệu rác.
 An toàn cho SQL Server: Đảm bảo chỉ có dữ liệu "sạch" mới được đẩy vào lệnh INSERT/UPDATE của pyodbc.
---------------------------------------- (Uvicorn + APIRouter + Pydantic)
+--------------------------------------- (Uvicorn + APIRouter + Pydantic) http://localhost/docs
 Để dự án SMILE HR chuyển từ Flask sang FastAPI thành công, bạn chỉ cần nắm vững "Bộ ba quyền lực" mới này. Chúng thay thế trực tiếp cho những gì bạn đang dùng ở Flask nhưng mạnh mẽ hơn nhiều.
 Dưới đây là bảng tổng hợp cực kỳ dễ hiểu:
 1. Uvicorn (Cỗ máy vận hành)
@@ -940,3 +940,8 @@ Dữ liệu	      if/else thủ công	Pydantic		Chặn đứng dữ liệu sai t
 Lời khuyên thực chiến:
 Khi bạn sửa file .bat và bắt đầu viết file main.py, hãy cứ dùng pyodbc như cũ để truy vấn SQL. Bạn chỉ cần bọc các câu lệnh đó vào APIRouter và dùng Pydantic để hứng dữ liệu.
 Bước tiếp theo: Bạn có muốn tôi viết một file main.py mẫu tích hợp cả 3 khái niệm này (Uvicorn + APIRouter + Pydantic) để bạn chạy thử nghiệm trên máy mình không?
+--------------------
+4. Checklist chạy thử (Để không bị lỗi 502)
+Bước 1: Chạy file run_app.bat của FastAPI (Uvicorn) trước. Đợi nó hiện chữ Uvicorn running on http://127.0.0.1:6066.
+Bước 2: Chạy file run_server.bat của Nginx.
+Bước 3: Mở trình duyệt gõ http://localhost.
