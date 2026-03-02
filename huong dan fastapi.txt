@@ -1,0 +1,942 @@
+Trong FastAPI, khái niệm Blueprints của Flask được thay thế bằng APIRouter. Cấu trúc MVC của bạn khi chuyển sang FastAPI sẽ trông rất chuyên nghiệp nhờ vào việc tách biệt Model dữ liệu (Pydantic).
+Dưới đây là bản "chuyển nhà" từ Flask sang FastAPI cho dự án HR của bạn:
+1. Cấu trúc thư mục (Tương đồng Flask)
+text
+HR_PROJECT_FASTAPI/
+├── main.py              # Thay cho app.py (Khởi tạo FastAPI)
+├── database.py          # Kết nối SQL Server
+├── schemas/             # (Mới) Định nghĩa kiểu dữ liệu (Pydantic)
+│   └── employee_schema.py
+├── controllers/
+│   └── employee_ctl.py  # Xử lý Logic CRUD
+├── routers/             # Thay cho views/ (Định nghĩa API Routes)
+│   └── employee_router.py
+├── templates/           # Chứa file HTML (Dùng Jinja2 giống Flask)
+└── static/              # CSS, JS, JSON lang
+Hãy thận trọng khi sử dụng mã.
+
+2. Demo Code các thành phần chính
+Schemas (schemas/employee_schema.py)
+Đây là điểm mạnh của FastAPI, giúp tự động kiểm tra dữ liệu và tạo tài liệu API.
+python
+from pydantic import BaseModel
+
+class EmployeeBase(BaseModel):
+    name: str
+    email: str
+    department_id: int
+
+class EmployeeCreate(EmployeeBase):
+    pass # Dùng khi nhận dữ liệu từ Client
+
+class EmployeeResponse(EmployeeBase):
+    id: int
+    class Config:
+        from_attributes = True # Cho phép làm việc với SQL Server objects
+Hãy thận trọng khi sử dụng mã.
+
+Controllers (controllers/employee_ctl.py)
+python
+from database import get_db_connection
+
+def get_all_employees():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, email, department_id FROM Employees")
+    rows = cursor.fetchall()
+    # Chuyển đổi sang list dict
+    return [{"id": r[0], "name": r[1], "email": r[2], "department_id": r[3]} for r in rows]
+Hãy thận trọng khi sử dụng mã.
+
+Routers (routers/employee_router.py)
+python
+from fastapi import APIRouter, Request, Depends
+from fastapi.templating import Jinja2Templates
+from controllers import employee_ctl
+
+router = APIRouter(prefix="/employees", tags=["Employees"])
+templates = Jinja2Templates(directory="templates")
+
+# Route trả về Giao diện (giống Flask)
+@router.get("/")
+async def list_employees_view(request: Request):
+    employees = employee_ctl.get_all_employees()
+    return templates.TemplateResponse("employee.html", {"request": request, "employees": employees})
+
+# Route trả về API JSON (FastAPI tự động tạo tài liệu tại /docs)
+@router.get("/api/all")
+async def get_employees_api():
+    return employee_ctl.get_all_employees()
+Hãy thận trọng khi sử dụng mã.
+
+Main App (main.py)
+python
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from routers import employee_router
+
+app = FastAPI(title="HR Management System")
+
+# Cấu hình file tĩnh giống Nginx/Flask
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Đăng ký các "Blueprints"
+app.include_router(employee_router.router)
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to HR API"}
+Hãy thận trọng khi sử dụng mã.
+
+3. Tại sao cấu trúc này tốt hơn cho dự án của bạn?
+Tự động tạo Docs: Bạn chỉ cần chạy server và truy cập 127.0.0.1 để xem toàn bộ tài liệu API của bộ phận HR.
+Async: Các hàm được đánh dấu async def sẽ giúp server không bị treo khi có nhiều nhân viên cùng truy xuất dữ liệu từ SQL Server một lúc.
+Dễ chuyển đổi: Bạn vẫn dùng chung được toàn bộ code HTML/JS và logic SQL cũ, chỉ thay đổi cách khai báo Route.
+-----------------------------------------------
+Để kết nối SQL Server trong FastAPI một cách chuyên nghiệp, bạn nên sử dụng SQLAlchemy kết hợp với pydantic. Cách này giúp quản lý kết nối (Connection Pooling) tự động và tránh rò rỉ tài nguyên.
+Dưới đây là file database.py chuẩn để bạn dùng cho dự án HR:
+1. Cấu hình database.py
+Bạn cần cài đặt thư viện: pip install sqlalchemy pyodbc
+python
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import urllib
+
+# 1. Cấu hình chuỗi kết nối SQL Server (Windows Auth hoặc SQL Auth)
+# Nếu dùng Linux/Nginx, đảm bảo đã cài Microsoft ODBC Driver
+params = urllib.parse.quote_plus(
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    "SERVER=TEN_SERVER_CUA_BAN;"
+    "DATABASE=HR_PROJECT;"
+    "UID=user_name;"
+    "PWD=password_cua_ban"
+)
+
+SQLALCHEMY_DATABASE_URL = f"mssql+pyodbc:///?odbc_connect={params}"
+
+# 2. Tạo Engine và Session
+# pool_size: Số lượng kết nối duy trì sẵn để dùng ngay
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, 
+    pool_size=10, 
+    max_overflow=20
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+# 3. Dependency cung cấp Session cho các Request
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+Hãy thận trọng khi sử dụng mã.
+
+2. Cách dùng trong controllers/employee_ctl.py
+Thay vì viết SQL thuần, bạn dùng ORM để code sạch và an toàn hơn:
+python
+from sqlalchemy.orm import Session
+from models import Employee # Định nghĩa bảng ở file models.py
+
+def get_all_employees(db: Session):
+    # Lấy toàn bộ nhân viên, cực kỳ ngắn gọn
+    return db.query(Employee).all()
+
+def get_employee_by_id(db: Session, emp_id: int):
+    return db.query(Employee).filter(Employee.id == emp_id).first()
+Hãy thận trọng khi sử dụng mã.
+
+3. Cách gọi tại routers/employee_view.py
+FastAPI sẽ tự động "bơm" (Inject) kết nối database vào từng request:
+python
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from database import get_db
+from controllers import employee_ctl
+
+router = APIRouter()
+
+@router.get("/employees")
+async def read_employees(db: Session = Depends(get_db)):
+    employees = employee_ctl.get_all_employees(db)
+    return employees
+Hãy thận trọng khi sử dụng mã.
+
+Tại sao nên dùng cách này?
+Hiệu năng: pool_size=10 giúp server không phải tạo kết nối mới cho mỗi request (việc này rất tốn thời gian với SQL Server).
+An toàn: Tự động đóng kết nối (db.close()) ngay cả khi code logic của bạn bị lỗi giữa chừng.
+Dễ bảo trì: Khi bạn đổi tên server hoặc database, bạn chỉ cần sửa duy nhất 1 chỗ ở database.py.
+Lưu ý quan trọng: Nếu bạn định chạy dự án này trên Nginx (Linux), bạn phải cài đặt Microsoft ODBC Driver for SQL Server trên Linux thì mới kết nối được.
+----------------------------
+Để hoàn thiện mô hình MVC, file models.py đóng vai trò là xương sống, ánh xạ các bảng từ SQL Server thành các Class trong Python. Khi kết hợp với SQLAlchemy, bạn sẽ thao tác với dữ liệu như những đối tượng thực thụ.
+1. Định nghĩa Models (models.py)
+Đây là nơi bạn mô tả cấu trúc bảng Employees và Departments.
+python
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
+from database import Base
+
+class Department(Base):
+    __tablename__ = "Departments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    
+    # Quan hệ: Một phòng ban có nhiều nhân viên
+    employees = relationship("Employee", back_populates="department")
+
+class Employee(Base):
+    __tablename__ = "Employees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fullname = Column(String(200), nullable=False)
+    email = Column(String(100), unique=True, index=True)
+    dept_id = Column(Integer, ForeignKey("Departments.id"))
+
+    # Quan hệ ngược lại
+    department = relationship("Department", back_populates="employees")
+Hãy thận trọng khi sử dụng mã.
+
+2. Cập nhật Controller (controllers/employee_ctl.py)
+Bây giờ logic lấy dữ liệu sẽ cực kỳ "sang chảnh" và dễ hiểu:
+python
+from sqlalchemy.orm import Session
+import models
+
+def get_employees_with_dept(db: Session):
+    # Tự động JOIN bảng Department để lấy tên phòng ban
+    return db.query(models.Employee).all()
+
+def create_new_employee(db: Session, emp_data):
+    new_emp = models.Employee(
+        fullname=emp_data.fullname,
+        email=emp_data.email,
+        dept_id=emp_data.dept_id
+    )
+    db.add(new_emp)
+    db.commit()
+    db.refresh(new_emp)
+    return new_emp
+Hãy thận trọng khi sử dụng mã.
+
+3. Tự động tạo bảng (Tùy chọn)
+Trong main.py, bạn thêm dòng này để FastAPI tự động tạo bảng trên SQL Server nếu chúng chưa tồn tại (rất tiện khi triển khai mới):
+python
+import models
+from database import engine
+
+models.Base.metadata.create_all(bind=engine)
+Hãy thận trọng khi sử dụng mã.
+
+Ưu điểm vượt trội của cách làm này:
+Tránh SQL Injection: SQLAlchemy tự động xử lý các tham số đầu vào, giúp dự án HR của bạn an toàn tuyệt đối trước các đòn tấn công web phổ biến.
+Code-First: Bạn có thể thay đổi cấu trúc bảng ngay trong Python mà không cần mở SQL Management Studio (SSMS).
+Hỗ trợ IDE: VS Code sẽ hiểu được employee.fullname hay employee.email là gì để gợi ý code (IntelliSense), điều mà Flask + SQL thuần không làm tốt bằng.
+----------------------------------------------------------------------
+Để khớp với cấu trúc dự án HR của bạn, file JS sẽ sử dụng fetch để gọi API từ FastAPI và cập nhật DOM mà không cần reload trang.
+Dưới đây là cách triển khai chuyên nghiệp cho static/js/employee.js:
+1. File JavaScript (static/js/employee.js)
+Sử dụng async/await để code sạch sẽ và dễ bắt lỗi.
+javascript
+// Gọi khi trang employee.html load xong
+document.addEventListener('DOMContentLoaded', function() {
+    loadEmployees();
+});
+
+async function loadEmployees() {
+    try {
+        const response = await fetch('/employees/api/all');
+        const data = await response.json();
+        
+        if (response.ok) {
+            renderEmployeeTable(data);
+        } else {
+            console.error('Lỗi lấy dữ liệu:', data.detail);
+        }
+    } catch (error) {
+        console.error('Lỗi kết nối server:', error);
+    }
+}
+
+function renderEmployeeTable(employees) {
+    const tbody = document.getElementById('employee-tbody');
+    tbody.innerHTML = ''; // Xóa dữ liệu cũ
+
+    employees.forEach(emp => {
+        const row = `
+            <tr>
+                <td>${emp.id}</td>
+                <td>${emp.fullname}</td>
+                <td>${emp.email}</td>
+                <td><span class="badge bg-info">${emp.department?.name || 'N/A'}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editEmployee(${emp.id})">Sửa</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteEmployee(${emp.id})">Xóa</button>
+                </td>
+            </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+    });
+}
+Hãy thận trọng khi sử dụng mã.
+
+2. Giao diện HTML mẫu (templates/employee.html)
+Tận dụng Bootstrap 5 để hiển thị bảng dữ liệu.
+html
+{% extends "header.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Danh sách nhân viên</h3>
+    <table class="table table-hover table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Họ Tên</th>
+                <th>Email</th>
+                <th>Phòng Ban</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody id="employee-tbody">
+            <!-- JS sẽ render dữ liệu vào đây -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Import file JS -->
+<script src="/static/js/employee.js"></script>
+{% endblock %}
+Hãy thận trọng khi sử dụng mã.
+
+3. Tại sao cách này tối ưu trên Nginx?
+Tách biệt hoàn toàn: Nginx sẽ "gánh" việc trả file employee.js và bootstrap.css cho trình duyệt (tốc độ cực nhanh).
+Tải trang mượt mà: Người dùng thấy giao diện ngay lập tức, sau đó dữ liệu mới đổ về từ FastAPI, tạo cảm giác ứng dụng phản hồi rất nhanh.
+JSON Native: FastAPI trả về JSON chuẩn, nên JS không cần xử lý phức tạp (Parse), giúp giảm tải CPU của máy khách.
+Điểm mấu chốt để thành công:
+Đảm bảo trong main.py bạn đã mount đúng thư mục static:
+python
+app.mount("/static", StaticFiles(directory="static"), name="static")
+Hãy thận trọng khi sử dụng mã.
+
+Bạn đã cài đặt Uvicorn và Microsoft ODBC Driver trên môi trường của mình chưa, hay bạn cần mình hướng dẫn cách viết file docker-compose để chạy cả Nginx, FastAPI và SQL Server cùng một lúc cho tiện?
+------------------------------------
+*Đặc điểm		Flask (Xe số tin cậy)				FastAPI (Siêu xe tự động)
+Tốc độ (Performance)	Chạy đồng bộ (Sync). Xử lý từng request một.	Chạy bất đồng bộ (Async). Xử lý hàng nghìn kết nối cùng lúc cực nhanh.
+Tài liệu API (Docs)	Phải cài thêm thư viện (như flasgger) và viết tay.	Tự động 100%. Viết code xong là có sẵn Swagger UI chuyên nghiệp.
+Kiểm tra dữ liệu	Phải viết hàm if/else để check dữ liệu đầu vào.	Tự động kiểm tra (Validation) nhờ Pydantic. Sai định dạng là tự báo lỗi JSON.
+Gợi ý Code (Type Hinting)	Hạn chế.				Tận dụng tối đa Type Hints của Python, giúp VS Code gợi ý lệnh cực chuẩn.
+Độ phức tạp	Rất dễ học, phù hợp web truyền thống (Jinja2).	Cần hiểu về async/await, cực kỳ mạnh cho Web App hiện đại.
+Điểm khác biệt "ăn tiền" nhất cho dự án HR của bạn:
+Xử lý Database: Với dự án HR có nhiều bảng (Nhân viên, Phòng ban, Lương), FastAPI kết hợp với Pydantic giúp bạn định nghĩa cấu trúc dữ liệu cực kỳ chặt chẽ. Khi bạn gọi API, nó sẽ tự động convert dữ liệu từ SQL Server sang JSON mà không cần viết vòng lặp thủ công như trong Flask.
+Hệ sinh thái: Flask đã cũ (từ 2010), trong khi FastAPI (2018) đang là framework phát triển nhanh nhất và dần trở thành tiêu chuẩn cho các dự án Python mới.
+Sự kết hợp với Nginx: Cả hai đều chạy tốt sau Nginx, nhưng FastAPI khi kết hợp với máy chủ Uvicorn sẽ cho hiệu suất chịu tải cao hơn Flask (Gunicorn) đáng kể.
+Lời khuyên:
+Nếu dự án HR của bạn chỉ là trang quản lý nội bộ nhỏ: Flask vẫn rất tốt.
+Nếu bạn muốn xây dựng hệ thống có API cho cả App di động, cần tốc độ nhanh và muốn có tài liệu API tự động để đồng nghiệp dùng chung: Hãy chọn FastAPI.
+-----------------------------------------------------------
+Việc chuyển đổi từ Flask sang FastAPI nhanh hay chậm phụ thuộc vào việc bạn giữ lại bao nhiêu phần cũ. Với cấu trúc MVC chặt chẽ mà bạn đang có, tin vui là bạn có thể tái sử dụng tới 70-80% code logic.
+Dưới đây là lộ trình "chuyển nhà" để bạn ước lượng thời gian:
+1. Những thứ giữ nguyên (Không tốn thời gian)
+Database Logic: Các câu lệnh SQL trong controllers/ có thể giữ nguyên nếu bạn dùng pyodbc hoặc SQLAlchemy.
+Giao diện (Frontend): Toàn bộ file HTML trong templates/, CSS/JS và các file JSON đa ngôn ngữ trong static/ không thay đổi. FastAPI vẫn dùng Jinja2 giống hệt Flask.
+Cấu trúc thư mục: Bạn vẫn giữ nguyên mô hình MVC hiện tại.
+2. Những thứ phải sửa (Tốn khoảng 1-2 ngày cho dự án vừa)
+Khai báo Route: Thay vì @app.route hay Blueprint, bạn chuyển sang @router.get hoặc @router.post.
+Request/Response: Flask dùng đối tượng toàn cục request, còn FastAPI yêu cầu bạn truyền request: Request vào hàm.
+Schemas (Pydantic): Đây là bước mới. Bạn cần định nghĩa các class để FastAPI hiểu cấu trúc dữ liệu nhân viên/phòng ban. Việc này giúp bạn bỏ được hàng tá câu lệnh if/else kiểm tra dữ liệu đầu vào.
+3. Ví dụ so sánh thực tế: Chuyển 1 Route
+Bên Flask (Cũ):
+python
+@employee_view.route('/add', methods=['POST'])
+def add_employee():
+    data = request.form
+    if not data.get('name'):
+        return "Thiếu tên", 400
+    employee_ctl.insert(data['name'], data['email'])
+    return redirect('/employees')
+Hãy thận trọng khi sử dụng mã.
+
+Bên FastAPI (Mới):
+python
+@router.post("/add")
+async def add_employee(request: Request, name: str = Form(...), email: str = Form(...)):
+    # FastAPI tự check name/email có trống không, nếu trống nó tự báo lỗi luôn
+    employee_ctl.insert(name, email)
+    return RedirectResponse(url="/employees", status_code=303)
+Hãy thận trọng khi sử dụng mã.
+
+Tổng kết thời gian ước tính:
+Dự án HR của bạn (khoảng 5-7 bảng): Mất khoảng 2 đến 4 buổi tối để chuyển đổi hoàn toàn và test lỗi.
+Lợi ích nhận lại: Code chạy nhanh hơn, có sẵn tài liệu Swagger UI để test API cực sướng, và hệ thống bảo mật hơn nhờ Pydantic.
+Lời khuyên: Bạn đừng chuyển hết một lúc. Hãy cài FastAPI và Uvicorn, sau đó thử chuyển duy nhất trang login.html hoặc employee.html trước. Khi thấy nó chạy mượt trên Nginx, hãy làm tiếp các phần còn lại.
+----------------------------------------- checklist chuyen doi Flask sang FastAPI
+Đây là bản Checklist thực chiến để bạn "di cư" dự án HR từ Flask sang FastAPI một cách an toàn và nhanh nhất. Bạn có thể thực hiện theo từng bước này để không bị rối:
+1. Chuẩn bị môi trường (15 phút)
+Cài đặt thư viện lõi: pip install fastapi uvicorn[standard] jinja2 python-multipart.
+Cài đặt kết nối DB (nếu chưa có): pip install sqlalchemy pyodbc.
+Tạo file main.py mới để thay thế app.py.
+2. Định nghĩa Dữ liệu - Schemas (30 phút)
+Trong Flask bạn thường lấy dữ liệu từ request.form. Trong FastAPI, hãy tạo thư mục schemas/ để định nghĩa cấu trúc:
+Tạo EmployeeSchema (tên, email, phòng ban) bằng Pydantic Models. Việc này giúp bạn bỏ được các lệnh if/else kiểm tra dữ liệu trống.
+3. Cấu hình App Chính - main.py (20 phút)
+Khai báo app = FastAPI().
+Mount thư mục static: app.mount("/static", StaticFiles(directory="static"), name="static").
+Cấu hình Jinja2: templates = Jinja2Templates(directory="templates").
+4. Chuyển đổi Views sang Routers (60 phút - Quan trọng nhất)
+Thay vì dùng Blueprints, bạn dùng APIRouter:
+Thay @app.route thành @router.get hoặc @router.post.
+Lưu ý: Mọi hàm xử lý giao diện HTML phải nhận tham số request: Request.
+Sửa hàm trả về: Từ render_template('index.html', user=user) sang templates.TemplateResponse("index.html", {"request": request, "user": user}).
+5. Tái sử dụng Controllers (10 phút)
+Giữ nguyên logic SQL trong controllers/.
+Nếu muốn tối ưu, hãy thêm từ khóa async trước các hàm xử lý để tận dụng tốc độ của FastAPI.
+6. Cấu hình Nginx & Chạy thử (15 phút)
+Chạy server bằng lệnh: uvicorn main:app --reload.
+Truy cập http://127.0.0.1 để kiểm tra toàn bộ API của bạn đã lên đủ chưa.
+Cập nhật file cấu hình Nginx để trỏ proxy_pass vào cổng 8000 của Uvicorn.
+Mẹo nhỏ cho bạn:
+Trong file HTML, các đường dẫn tĩnh như src="/static/js/app.js" vẫn hoạt động bình thường. Tuy nhiên, nếu bạn dùng hàm url_for của Flask trong template, hãy nhớ trong FastAPI nó yêu cầu truyền thêm request: url_for('static', path='/js/app.js').
+------------------------------------ run_app.bat, run_service.bat
+Cách bạn đang vận hành với NSSM và Batch script rất thực tế cho môi trường Windows. Để chuyển sang FastAPI, bạn chỉ cần thay đổi "đầu máy" từ Waitress/Flask sang Uvicorn/FastAPI.
+Dưới đây là cách cập nhật bộ script của bạn để chạy FastAPI mượt mà:
+1. Cập nhật run_app.bat cho FastAPI
+Thay vì dùng waitress, bạn sẽ dùng uvicorn. Tôi đã tối ưu lại để không phải pip install lại mỗi lần khởi động (giúp server lên nhanh hơn).
+batch
+@echo off
+setlocal
+cd /d "C:\SMILE PMS\HR_PROJECT_MVC2"
+
+:: Kiểm tra và cài đặt thư viện thiếu (chỉ chạy khi cần)
+echo [%date% %time%] Dang kiem tra thu vien FastAPI...
+"C:\Program Files\Python312\python.exe" -m pip install fastapi uvicorn jinja2 python-multipart pyodbc pandas openpyxl --user
+
+:: Khởi động FastAPI với Uvicorn
+:: --port 6066: Giữ nguyên cổng cũ để không phải sửa Nginx
+:: --workers 4: Chạy đa luồng để xử lý nhanh hơn (tùy số nhân CPU)
+echo [%date% %time%] Dang khoi dong FastAPI Server...
+"C:\Program Files\Python312\python.exe" -m uvicorn main:app --host 127.0.0.1 --port 6066 --workers 4
+
+pause
+Hãy thận trọng khi sử dụng mã.
+
+2. Tối ưu nginx.conf
+File cấu hình của bạn đang chạy tốt, nhưng để Nginx hỗ trợ FastAPI (vốn rất mạnh về xử lý đồng thời), bạn nên thêm định nghĩa Mime Types để các file CSS/JS không bị lỗi định dạng:
+nginx
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types; # Quan trọng: Giúp nhận diện CSS/JS
+    default_type  application/octet-stream;
+
+    server {
+        listen       80;
+        server_name  127.0.0.1;
+
+        # Tối ưu: Cho Nginx xử lý file tĩnh trực tiếp (không qua Python)
+        location /static/ {
+            alias "C:/SMILE PMS/HR_PROJECT_MVC2/static/";
+        }
+
+        location / {
+            proxy_pass http://127.0.0.1:6066;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+}
+Hãy thận trọng khi sử dụng mã.
+
+3. Lưu ý khi dùng NSSM với FastAPI
+Khi bạn cấu hình lại dịch vụ trong NSSM Service Helper:
+Path: Trỏ đến C:\Program Files\Python312\python.exe.
+Startup directory: C:\SMILE PMS\HR_PROJECT_MVC2.
+Arguments: -m uvicorn main:app --host 127.0.0.1 --port 6066.
+Tại sao cấu hình này "ngon" hơn IIS?
+Ổn định: NSSM sẽ tự động hồi sinh (restart) FastAPI nếu nó bị crash, điều mà file .bat thông thường không làm được.
+Tốc độ: Nginx xử lý các file languages.json và employee.js của bạn cực nhanh, giải phóng tài nguyên cho FastAPI chỉ tập trung truy vấn SQL Server.
+Log: Bạn có thể xem log trực tiếp từ cửa sổ Uvicorn để debug nhanh hơn so với Event Viewer của IIS.
+------------------------------------- FastAPI router thay thế Blueprint
+Trong FastAPI, APIRouter chính là "người kế nhiệm" hoàn hảo của Blueprint trong Flask. Nó giúp bạn chia nhỏ dự án SMILE HR thành các module (Nhân viên, Phòng ban, Quyền) để dễ quản lý.
+Dưới đây là bảng so sánh trực quan và cách chuyển đổi để bạn áp dụng ngay:
+1. So sánh cách hoạt động
+Đặc điểm	Blueprint (Flask)		APIRouter (FastAPI)
+Khai báo	bp = Blueprint('emp', __name__)	router = APIRouter()
+Gắn vào App	app.register_blueprint(bp)	app.include_router(router)
+Tiền tố URL	url_prefix='/emp'		prefix='/emp'
+Nhóm chức năng	Chỉ gom nhóm Route.		Gom nhóm + Tự động tạo tiêu đề trong Docs.
+
+Để chuyển từ Flask (Waitress) sang FastAPI (Uvicorn) mà vẫn giữ nguyên cổng 6066 và cấu trúc NSSM của bạn, đây là file main.py hoàn chỉnh.
+1. File main.py (Thay thế cho app.py)
+Tôi đã chuyển đổi các Blueprint của bạn sang APIRouter và tích hợp sẵn hệ thống Session tương đương Flask.
+python
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+import os
+
+# Import các Router (Thay thế Blueprint)
+from routers.auth_router import auth_router
+from routers.employee_router import employee_router
+from routers.department_router import department_router
+from routers.permission_router import perm_router
+
+app = FastAPI(title="SMILE HR FastAPI Service")
+
+# 1. Cấu hình Session (Thay cho app.secret_key)
+app.add_middleware(SessionMiddleware, secret_key="hr_pro_key")
+
+# 2. Cấu hình File tĩnh và Template
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# 3. Route gốc (Kiểm tra Login giống Flask)
+@app.get("/")
+async def index(request: Request):
+    user_id = request.session.get("user_id")
+    if not user_id:
+        # Giả định router auth có tên 'auth' và route là 'login_page'
+        return RedirectResponse(url="/auth/login", status_code=303)
+    return templates.TemplateResponse("index.html", {"request": request})
+
+# 4. Đăng ký các Router (Thay cho register_blueprint)
+app.include_router(auth_router)
+app.include_router(employee_router)
+app.include_router(department_router)
+app.include_router(perm_router)
+
+if __name__ == '__main__':
+    import uvicorn
+    port = int(os.environ.get('PORT', 6066))
+    print(f"SMILE HR FastAPI Service is starting on port {port}...")
+    # Chạy trực tiếp để test, khi dùng NSSM sẽ gọi qua lệnh uvicorn trong file .bat
+    uvicorn.run("main:app", host="127.0.0.1", port=port, reload=True)
+Hãy thận trọng khi sử dụng mã.
+
+2. Những thay đổi quan trọng bạn cần thực hiện:
+Trong các file Router (employee_router.py, ...):
+Thay vì dùng from flask import Blueprint, bạn dùng:
+python
+from fastapi import APIRouter
+auth_router = APIRouter(prefix="/auth", tags=["Auth"])
+Hãy thận trọng khi sử dụng mã.
+
+Trong các hàm xử lý Giao diện:
+Tất cả các hàm trả về HTML phải nhận tham số request: Request.
+Flask: return render_template('index.html')
+FastAPI: return templates.TemplateResponse("index.html", {"request": request})
+Hệ thống Session:
+Sử dụng request.session.get("user_id") thay cho session['user_id'].
+3. Cập nhật NSSM
+Bạn không cần cài lại NSSM, chỉ cần sửa Arguments trong tab Application của NSSM:
+Path: C:\Program Files\Python312\python.exe
+Arguments: -m uvicorn main:app --host 127.0.0.1 --port 6066
+4. Tại sao cấu hình này chạy tốt với Nginx của bạn?
+File nginx.conf hiện tại của bạn đẩy mọi thứ vào http://127.0.0.1:6066. Vì FastAPI cũng đang lắng nghe cổng này, Nginx sẽ không nhận ra sự khác biệt, nhưng người dùng sẽ thấy trang web phản hồi nhanh hơn đáng kể nhờ cơ chế bất đồng bộ (Async) của FastAPI.
+Bạn đã sẵn sàng để tôi viết mẫu một file employee_router.py theo đúng chuẩn FastAPI từ file employee_view.py cũ của bạn chưa?
+-----------------------------------------------
+1. Bản chất kỹ thuật
+pyodbc (DB-API Library): Là một "trình điều khiển" (driver) cấp thấp. Bạn phải viết các câu lệnh SQL thuần (SELECT * FROM...) dưới dạng chuỗi văn bản. Nó chỉ đơn giản là mở đường ống dẫn lệnh từ Python tới SQL Server. Tài liệu pyodbc.
+SQLAlchemy (ORM - Object Relational Mapper): Là một lớp bọc cao cấp phía trên pyodbc. Nó biến các bảng trong SQL Server thành các Class Python. Bạn thao tác với dữ liệu như thao tác với đối tượng, không cần viết SQL thủ công. Trang chủ SQLAlchemy.
+2. So sánh thực tế trong code
+Đặc điểm	pyodbc (Cách bạn đang dùng)		SQLAlchemy (Cách hiện đại)
+Cách viết	cursor.execute("SELECT * FROM Emp")	db.query(Employee).all()
+Dùng pyodbc nếu:
+Bạn đã rất giỏi SQL thuần và muốn kiểm soát 100% câu lệnh gửi đi.
+Dự án nhỏ, các câu truy vấn đơn giản, không muốn tốn thời gian học thêm thư viện mới.
+Ưu điểm: Tốc độ thực thi thô (raw speed) nhanh hơn một chút vì không có lớp trung gian.
+----------------------------------------------- dung pyodbc sql thuần
+Nếu bạn muốn kiểm soát tuyệt đối câu lệnh SQL và thường xuyên gọi Stored Procedure (SP), thì pyodbc là lựa chọn số 1. Nó cho phép bạn truyền tham số vào SP một cách an toàn và lấy kết quả trả về cực kỳ tường minh.
+Dưới đây là cách triển khai chuyên nghiệp trong FastAPI để chạy Store Procedure và SQL thuần:
+1. Cách gọi Stored Procedure (Có tham số)
+Giả sử bạn có SP usp_GetEmployeeSalary trong SQL Server:
+python
+from database import get_db_connection
+
+def call_salary_procedure(emp_id: int, month: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Cách gọi SP chuẩn: dùng dấu ? để tránh SQL Injection
+    sql = "{CALL usp_GetEmployeeSalary (?, ?)}"
+    params = (emp_id, month)
+    
+    try:
+        cursor.execute(sql, params)
+        # Nếu SP trả về kết quả (Select)
+        row = cursor.fetchone()
+        if row:
+            return dict(zip([column[0] for column in cursor.description], row))
+    except Exception as e:
+        print(f"Lỗi thực thi SP: {e}")
+    finally:
+        conn.close() # Luôn đóng kết nối
+    return None
+Hãy thận trọng khi sử dụng mã.
+
+2. Viết SQL trực tiếp trong Router FastAPI
+Đây là cách bạn tích hợp vào dự án HR để vừa xử lý logic, vừa hiểu rõ câu lệnh mình viết:
+python
+@router.get("/details/{emp_id}")
+async def get_employee_details(emp_id: int, request: Request):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Viết SQL tường minh để bạn dễ debug
+    query = """
+        SELECT E.fullname, D.name as department_name, P.role_name
+        FROM Employees E
+        JOIN Departments D ON E.dept_id = D.id
+        JOIN Permissions P ON E.id = P.emp_id
+        WHERE E.id = ?
+    """
+    
+    cursor.execute(query, (emp_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        # Biến thành Dict để trả về JSON hoặc đưa vào HTML
+        data = {"fullname": row[0], "dept": row[1], "role": row[2]}
+        return templates.TemplateResponse("details.html", {"request": request, "data": data})
+    
+    return {"error": "Không tìm thấy nhân viên"}
+Hãy thận trọng khi sử dụng mã.
+
+3. Tại sao chọn cách này cho "SMILE HR"?
+Hiệu năng Stored Procedure: SQL Server đã biên dịch sẵn SP, nên khi gọi từ FastAPI qua Nginx, tốc độ phản hồi sẽ đạt mức tối đa (miligiây).
+Dễ Debug: Bạn có thể copy câu lệnh SQL từ Python dán trực tiếp vào SQL Server Management Studio (SSMS) để chạy thử.
+An toàn: Việc dùng dấu ? (Parameterized Query) là bắt buộc. Nginx sẽ chặn các request rác, còn pyodbc sẽ chặn các đòn tấn công SQL Injection.
+Lưu ý khi chạy Service với NSSM:
+Vì bạn viết lệnh trực tiếp, hãy đảm bảo chuỗi kết nối trong database.py sử dụng SQL Authentication (User/Pass) thay vì Windows Authentication, vì khi chạy qua Service (NSSM), quyền Windows của User hiện tại có thể không khớp với quyền truy cập Database.
+Bạn có cần tôi hỗ trợ viết một hàm mẫu để xử lý việc "Ghi Log" các thao tác của User vào một bảng SQL riêng mỗi khi họ gọi API không?
+-------------------------------------------------------- log project
+Việc ghi Log trực tiếp vào SQL Server bằng pyodbc trong FastAPI cực kỳ hữu ích để bạn theo dõi ai đã làm gì (Audit Trail). Vì bạn muốn viết lệnh trực tiếp để kiểm soát, đây là cách thiết lập một hàm log dùng chung cho toàn bộ dự án SMILE HR.
+1. Chuẩn bị bảng Log trong SQL Server
+Bạn nên chạy câu lệnh này trong SSMS trước:
+sql
+CREATE TABLE UserLogs (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    user_id VARCHAR(50),
+    action_name NVARCHAR(255),  -- Ví dụ: 'Xem danh sách nhân viên'
+    endpoint NVARCHAR(255),     -- Ví dụ: '/employees/'
+    client_ip VARCHAR(50),
+    created_at DATETIME DEFAULT GETDATE()
+);
+Hãy thận trọng khi sử dụng mã.
+
+2. Hàm ghi Log mẫu (database.py hoặc file riêng)
+Hàm này sẽ nhận dữ liệu và thực hiện INSERT trực tiếp.
+python
+from database import get_db_connection
+from fastapi import Request
+
+def write_user_log(user_id: str, action: str, request: Request):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Câu lệnh SQL tường minh để bạn dễ hiểu
+        sql = """
+            INSERT INTO UserLogs (user_id, action_name, endpoint, client_ip)
+            VALUES (?, ?, ?, ?)
+        """
+        
+        # Lấy thông tin từ Request của FastAPI
+        endpoint = str(request.url.path)
+        client_ip = request.client.host
+        
+        cursor.execute(sql, (user_id, action, endpoint, client_ip))
+        conn.commit() # Quan trọng: Phải commit để lưu vào DB
+        conn.close()
+    except Exception as e:
+        print(f"Lỗi ghi log: {e}")
+Hãy thận trọng khi sử dụng mã.
+
+3. Tích hợp vào Router (Ví dụ: employee_router.py)
+Mỗi khi nhân viên thực hiện một hành động, bạn gọi hàm này:
+python
+@router.get("/")
+async def list_employees(request: Request):
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return RedirectResponse(url="/auth/login")
+
+    # --- GHI LOG NGAY TẠI ĐÂY ---
+    write_user_log(user_id, "Truy cập danh sách nhân viên", request)
+    
+    # Logic lấy dữ liệu cũ của bạn...
+    return templates.TemplateResponse("employee.html", {"request": request})
+Hãy thận trọng khi sử dụng mã.
+
+4. Tại sao cách làm này "ngon" khi chạy Nginx + NSSM?
+Dữ liệu thật: Bạn biết chính xác IP của máy khách (nhờ proxy_set_header X-Real-IP trong file Nginx Config của bạn).
+Kiểm soát luồng: Bạn có thể gọi write_user_log ở bất kỳ đâu (Login, Update, Delete) để biết nhân viên nào đang sửa dữ liệu trái phép.
+Không bị treo Service: Việc dùng try/except đảm bảo nếu việc ghi log bị lỗi (ví dụ bảng Log bị đầy), Service chạy qua NSSM vẫn không bị crash, ứng dụng HR vẫn hoạt động bình thường.
+Mẹo tối ưu (Async Log):
+Nếu bạn muốn việc ghi log không làm chậm tốc độ phản hồi của người dùng, bạn có thể dùng tính năng Background Tasks của FastAPI:
+python
+from fastapi import BackgroundTasks
+
+@router.get("/")
+async def list_employees(request: Request, background_tasks: BackgroundTasks):
+    user_id = request.session.get("user_id")
+    # Chạy ghi log ở "hàng chờ", trả giao diện cho user trước
+    background_tasks.add_task(write_user_log, user_id, "Xem danh sách", request)
+    return templates.TemplateResponse(...)
+Hãy thận trọng khi sử dụng mã.
+
+Bạn có muốn tôi hỗ trợ viết tiếp phần xử lý lỗi (Exception Handling) chung cho toàn dự án để khi SQL Server bị ngắt kết nối, website sẽ hiện một trang thông báo lỗi "xịn" thay vì báo lỗi code không?
+---------------------------------------------------------- trang error
+Trong FastAPI, việc xử lý lỗi tập trung (Global Exception Handling) giúp dự án SMILE HR của bạn chuyên nghiệp hơn hẳn. Thay vì để hiện lỗi code Python loằng ngoằng khi mất kết nối SQL Server, bạn sẽ hiển thị một trang HTML thông báo lỗi thân thiện.
+Dưới đây là cách thiết lập trang báo lỗi "xịn" cho dự án của bạn:
+1. Tạo trang HTML báo lỗi (templates/error.html)
+Trang này dùng chung cho mọi loại lỗi (Mất kết nối DB, Lỗi logic, v.v.)
+html
+{% extends "header.html" %}
+{% block content %}
+<div class="container text-center mt-5">
+    <div class="alert alert-danger">
+        <h2 class="display-4">Hệ thống có sự cố!</h2>
+        <p class="lead">{{ message }}</p>
+        <hr>
+        <p>Vui lòng liên hệ IT Smile PMS hoặc thử lại sau ít phút.</p>
+        <a href="/" class="btn btn-primary">Quay về Trang chủ</a>
+    </div>
+</div>
+{% endblock %}
+Hãy thận trọng khi sử dụng mã.
+
+2. Cấu hình xử lý lỗi tập trung trong main.py
+Bạn sử dụng @app.exception_handler để bắt mọi lỗi phát sinh từ bất kỳ đâu (Controllers, Routers, Database).
+python
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+import pyodbc
+
+# ... (Phần khai báo app, templates cũ của bạn)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # 1. Phân loại lỗi để đưa ra thông báo phù hợp
+    error_msg = "Đã xảy ra lỗi không xác định."
+    
+    if isinstance(exc, pyodbc.Error):
+        error_msg = "Không thể kết nối đến cơ sở dữ liệu SQL Server. Vui lòng kiểm tra lại dịch vụ Database."
+        print(f"[DB ERROR]: {exc}") # Log ra console để bạn debug qua NSSM
+    else:
+        print(f"[SYSTEM ERROR]: {exc}")
+
+    # 2. Trả về trang HTML báo lỗi cho người dùng
+    return templates.TemplateResponse(
+        "error.html", 
+        {"request": request, "message": error_msg},
+        status_code=500
+    )
+Hãy thận trọng khi sử dụng mã.
+
+3. Tại sao cách này tối ưu với mô hình Nginx + NSSM?
+Người dùng không hoang mang: Khi SQL Server bảo trì hoặc bị ngắt kết nối, nhân viên HR thấy trang thông báo chuyên nghiệp thay vì lỗi "Internal Server Error" thô kệch từ Nginx.
+Dễ dàng Debug: Toàn bộ nội dung lỗi thật vẫn được print ra. Khi bạn chạy Service qua NSSM, bạn có thể cấu hình tab I/O để ghi toàn bộ stdout và stderr vào file .log. Bạn chỉ cần mở file log đó ra là biết chính xác dòng code nào bị lỗi.
+An toàn bảo mật: Việc ẩn lỗi chi tiết của Python/SQL giúp ngăn chặn kẻ xấu thu thập thông tin về cấu trúc thư mục hoặc tên bảng dữ liệu của bạn.
+Mẹo nhỏ: Kiểm tra kết nối trước khi chạy
+Trong main.py, bạn có thể thêm một đoạn kiểm tra kết nối SQL Server ngay khi khởi động. Nếu không kết nối được, server sẽ không chạy để bạn biết lỗi ngay từ đầu:
+python
+@app.on_event("startup")
+async def startup_event():
+    try:
+        conn = get_db_connection()
+        conn.close()
+        print("--- KẾT NỐI SQL SERVER THÀNH CÔNG ---")
+    except Exception as e:
+        print(f"--- THẤT BẠI: KHÔNG THỂ KẾT NỐI SQL SERVER: {e} ---")
+        # Bạn có thể cho dừng app tại đây nếu muốn
+Hãy thận trọng khi sử dụng mã.
+
+Bạn đã sẵn sàng để "lên sóng" (Deploy) bản FastAPI này thay thế cho Flask chưa? Tôi có thể giúp bạn kiểm tra lại file requirements.txt lần cuối để đảm bảo mọi thứ chạy mượt trên Windows Server.
+------------------------------------------------
+Chúc mừng bạn đã hoàn thiện lộ trình nâng cấp hệ thống SMILE HR từ Flask lên FastAPI với kiến trúc Nginx + SQL Server cực kỳ chuyên nghiệp.
+Dưới đây là file requirements.txt chuẩn nhất để bạn triển khai ngay trên môi trường Windows Server qua NSSM:
+1. Tạo file requirements.txt
+Hãy lưu nội dung này vào thư mục gốc của dự án:
+text
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+jinja2==3.1.3
+python-multipart==0.0.6
+itsdangerous==2.1.2
+starlette==0.35.1
+pyodbc==5.0.1
+pandas==2.2.0
+openpyxl==3.1.2
+Hãy thận trọng khi sử dụng mã.
+
+2. Các bước triển khai cuối cùng (Final Checklist)
+Để đảm bảo "lên sóng" không lỗi, hãy thực hiện theo thứ tự này:
+Cài đặt thư viện: Mở CMD tại thư mục dự án và chạy:
+"C:\Program Files\Python312\python.exe" -m pip install -r requirements.txt --user
+Kiểm tra Driver: Đảm bảo máy chủ đã cài Microsoft ODBC Driver 17 for SQL Server.
+Chạy thử bằng tay: Trước khi chạy qua Service, hãy chạy thử lệnh này để xem có lỗi gì không:
+python -m uvicorn main:app --host 127.0.0.1 --port 6066 --reload
+Cấu hình NSSM:
+Sửa lại Arguments thành: -m uvicorn main:app --host 127.0.0.1 --port 6066.
+Trong tab Log (I/O), hãy trỏ đường dẫn file log (ví dụ: C:\SMILE PMS\logs\fastapi_out.log) để sau này bạn dễ debug nếu SQL Server bị ngắt kết nối.
+Restart Nginx: Chạy file run_server.bat của bạn để Nginx nhận diện cấu hình mới và bắt đầu điều hướng vào FastAPI.
+3. Kết quả bạn nhận được
+Tốc độ: Trang HR sẽ phản hồi nhanh hơn, đặc biệt là khi truy xuất bảng nhân viên lớn nhờ Uvicorn (máy chủ ASGI).
+Ổn định: Hệ thống tự động ghi Log và xử lý lỗi tập trung, không còn hiện tượng "trang trắng" khi lỗi database.
+Hiện đại: Bạn có sẵn Swagger UI tại http://127.0.0.1 để IT Smile PMS có thể test API bất cứ lúc nào.
+Bạn có gặp khó khăn gì khi chạy thử lệnh Uvicorn lần đầu tiên không? Nếu có lỗi báo về "Module Not Found", hãy cho tôi biết tên module đó để tôi xử lý giúp bạn!
+------------------------------------------ Uvicorn
+Để dễ hình dung, bạn hãy tưởng tượng dự án SMILE HR của mình là một nhà hàng:
+Python (Code của bạn): Là các công thức nấu ăn.
+FastAPI: Là người bếp trưởng điều phối các đơn hàng.
+Uvicorn: Là mặt bằng nhà hàng và hệ thống phục vụ. Không có Uvicorn, khách hàng (Trình duyệt) không thể vào ăn, và đầu bếp không có chỗ để nấu.
+1. Uvicorn là gì?
+Uvicorn là một ASGI Server (Asynchronous Server Gateway Interface).
+Với Flask: Bạn dùng Waitress hoặc Gunicorn. Chúng là chuẩn WSGI (cũ), chỉ làm việc theo kiểu "xong việc này mới tới việc kia".
+Với FastAPI: Bạn bắt buộc dùng ASGI như Uvicorn. Nó cho phép xử lý hàng ngàn "đơn hàng" cùng lúc mà không cần chờ đợi nhau (Async).
+2. Tại sao bạn cần Uvicorn cho dự án SMILE HR?
+Nếu dùng chuẩn cũ (WSGI), khi một nhân viên đang tải báo cáo HR nặng (mất 10 giây), những người khác truy cập vào trang Web sẽ bị xoay vòng vòng chờ đợi.
+Uvicorn giải quyết việc này: Nó tiếp nhận tất cả request cùng lúc, cái nào xong trước trả trước, giúp hệ thống không bao giờ bị "treo" cục bộ. Tìm hiểu thêm về ASGI tại Starlette.
+3. Cách Uvicorn làm việc với Nginx và NSSM của bạn
+Mô hình dòng chảy dữ liệu của bạn bây giờ sẽ là:
+Người dùng --> Nginx (Cổng 80) --> Uvicorn (Cổng 6066) --> FastAPI (Code Python) --> SQL Server
+Lệnh chạy trong file .bat của bạn:
+batch
+python -m uvicorn main:app --host 127.0.0.1 --port 6066 --workers 4
+Hãy thận trọng khi sử dụng mã.
+
+main:app: Tìm file main.py và chạy đối tượng app = FastAPI().
+--workers 4: Uvicorn sẽ tạo ra 4 "nhân viên" chạy song song. Nếu một "nhân viên" bị lỗi SQL Server, 3 người còn lại vẫn phục vụ HR bình thường.
+4. So sánh nhanh với Waitress (Cái bạn đang dùng cho Flask)
+Đặc điểm	Waitress (Flask)	Uvicorn (FastAPI)
+Chuẩn	WSGI (Đồng bộ)	ASGI (Bất đồng bộ - Async)
+Tốc độ	Trung bình	Cực nhanh (Dựa trên uvloop)
+Độ trễ	Có thể bị nghẽn nếu xử lý lâu	Thấp, tối ưu cho API
+Tóm lại:
+Bạn không cần viết code cho Uvicorn. Bạn chỉ cần gọi nó trong file .bat để nó "nhấc" cái code FastAPI của bạn lên và chạy trên mạng. Tài liệu cài đặt Uvicorn rất đơn giản, chỉ cần pip install uvicorn.
+Bạn đã thử chạy lệnh uvicorn main:app --port 6066 trên máy mình chưa? Có xuất hiện dòng chữ "Uvicorn running on http://127.0.0.1:6066" không?
+1. Flask & Waitress (Mô hình truyền thống - 1 Làn xe)
+2. FastAPI & Uvicorn (Mô hình hiện đại - Nhiều làn xe tự động)
+------------------------------------------------ MVC Flask, FastAPI
+Khi bạn dùng pyodbc để viết SQL thuần, sự khác biệt giữa MVC của Flask và FastAPI nằm ở cách dữ liệu chạy qua các lớp và cách hệ thống phản hồi.
+Trong dự án SMILE HR, dù cấu trúc thư mục của bạn giữ nguyên, bản chất vận hành sẽ thay đổi như sau:
+1. Model (M): Từ "Bất động" sang "Tự động"
+Ở Flask: database.py chỉ làm nhiệm vụ kết nối. Khi bạn lấy dữ liệu từ SQL Server, bạn nhận về một tuple hoặc list. Bạn phải tự viết code để chuyển nó sang JSON hoặc đưa vào HTML.
+Ở FastAPI: Bạn bổ sung thêm Pydantic Schemas.
+Nó đóng vai trò là "khuôn mẫu" cho dữ liệu.
+Khi bạn dùng cursor.fetchall(), FastAPI dùng Schemas này để tự động định dạng ngày tháng, tiền lương, và tự động báo lỗi nếu dữ liệu từ SQL Server bị sai kiểu (ví dụ: lương là chữ thay vì số).
+2. View (V): Từ "Đường dẫn đơn thuần" sang "Cổng kết nối thông minh"
+Ở Flask (views/): Blueprint chỉ là nơi định nghĩa URL. Bạn phải cài thêm thư viện nếu muốn có tài liệu hướng dẫn API cho đồng nghiệp.
+Ở FastAPI (routers/): APIRouter tích hợp sẵn Swagger UI.
+Chỉ cần bạn khai báo Route, FastAPI tự tạo giao diện dùng thử API tại /docs.
+Nó hỗ trợ Async (Bất đồng bộ), giúp Nginx không phải chờ đợi khi SQL Server đang xử lý các câu lệnh JOIN phức tạp.
+3. Controller (C): Từ "Chờ đợi" sang "Đa nhiệm"
+Đây là khác biệt lớn nhất cho dự án HR của bạn khi chạy qua Uvicorn:
+Flask Controller: Chạy kiểu xếp hàng (Sync). Một người tải báo cáo lương nặng, cả hệ thống "nín thở" chờ.
+FastAPI Controller: Dùng async def.
+Khi bạn gọi cursor.execute(), nhân viên phục vụ (Uvicorn) sẽ đi làm việc khác trong lúc chờ SQL Server trả kết quả.
+Kết quả: Web của bạn không bao giờ bị "đơ" dù có nhiều người cùng truy cập.
+So sánh luồng MVC thực tế với pyodbc
+Thành phần	MVC Flask + Waitress	MVC FastAPI + Uvicorn
+Request	Đến lượt mới xử lý.	Tiếp nhận hàng loạt cùng lúc.
+Validation	Bạn viết if not name: return error.	FastAPI tự check qua Schemas.
+SQL (pyodbc)	Chạy xong mới làm việc khác.	Chạy ngầm, giải phóng CPU.
+Response	Trả về HTML/JSON đơn thuần.	Trả về dữ liệu + Auto Docs.
+Ví dụ Controller "SMILE HR" chuyển sang FastAPI:
+Flask (Cũ):
+python
+@employee_bp.route('/add', methods=['POST'])
+def add():
+    name = request.form.get('name')
+    # Phải tự viết check lỗi ở đây
+    cursor.execute("INSERT INTO Employees...")
+    return redirect('/')
+Hãy thận trọng khi sử dụng mã.
+
+FastAPI (Mới - Chuyên nghiệp hơn):
+python
+@router.post("/add")
+async def add(name: str = Form(...)): # FastAPI tự báo lỗi nếu thiếu name
+    # Dùng BackgroundTasks để ghi Log mà không làm chậm User
+    cursor.execute("INSERT INTO Employees...") 
+    return RedirectResponse("/", status_code=303)
+Hãy thận trọng khi sử dụng mã.
+
+Lời khuyên cho bạn: Với hệ thống SMILE HR, hãy giữ nguyên logic SQL trong Controller, nhưng hãy bọc chúng bằng APIRouter và Pydantic Schemas. Bạn sẽ thấy code sạch hơn và Nginx hoạt động hiệu quả hơn hẳn.
+Bạn có muốn tôi viết mẫu một bộ Schemas Pydantic cho bảng nhân viên để bạn khớp vào file routers/employee_router.py không?
+-------------------------------- Pydantic Schemas
+Trong dự án SMILE HR, nếu SQL Server là cái kho chứa đồ, thì Pydantic Schemas chính là "Bộ khuôn đúc dữ liệu".
+Nó là một thư viện Python giúp bạn định nghĩa cấu trúc dữ liệu một cách chặt chẽ. Khi dữ liệu (từ SQL hoặc từ Form người dùng) đi qua cái khuôn này, nếu không đúng hình dạng, Pydantic sẽ "gạt" ra ngay lập tức.
+Lý do bạn không thấy Pydantic trong Flask là vì Flask được thiết kế theo triết lý "Cổ điển" (Legacy), trong khi FastAPI được xây dựng trên triết lý "Hiện đại" (Modern Python).
+Dưới đây là 3 lý do chính giải thích tại sao Pydantic không phải là "mặc định" của Flask:
+1. Flask ra đời trước Pydantic rất lâu
+Flask (2010): Thời điểm đó Python chưa có khái niệm Type Hints (gợi ý kiểu dữ liệu như name: str). Flask dùng các bộ thư viện cũ hơn như WTForms hoặc Marshmallow để kiểm tra dữ liệu.
+FastAPI (2018): Ra đời khi Python đã hiện đại hóa. Nó được xây dựng dựa trên chính Pydantic. FastAPI không thể chạy nếu thiếu Pydantic, chúng là "đôi bạn thân".
+2. Cách kiểm tra dữ liệu (Validation) khác nhau
+Trong dự án SMILE HR hiện tại của bạn với Flask, bạn thường làm thế này:
+python
+# Cách của Flask (Thủ công)
+name = request.form.get('name')
+if not name or len(name) < 3:
+    return "Tên quá ngắn", 400
+Hãy thận trọng khi sử dụng mã.
+
+Còn trong FastAPI, bạn chỉ cần khai báo cái "Khuôn" (Pydantic), và nó tự làm hết:
+python
+# Cách của FastAPI (Tự động nhờ Pydantic)
+async def add_emp(name: str = Form(..., min_length=3)):
+    # Nếu chạy vào đây, chắc chắn name đã chuẩn > 3 ký tự
+Hãy thận trọng khi sử dụng mã.
+
+3. Sự tích hợp sâu (Native Integration)
+Flask: Là một Framework "tự do". Nó không ép bạn dùng thư viện nào. Nếu muốn dùng Pydantic trong Flask, bạn phải tự cài thêm và tự viết code kết nối chúng lại với nhau (khá lỉnh kỉnh).
+FastAPI: Tích hợp Pydantic vào tận "xương tủy". Nhờ Pydantic mà FastAPI có thể:
+Tự tạo tài liệu Swagger UI (/docs).
+Tự chuyển đổi dữ liệu từ SQL Server (pyodbc) sang JSON cực nhanh.
+Tự báo lỗi chi tiết cho người dùng (Ví dụ: "Trường Email không đúng định dạng") mà bạn không cần viết dòng code if/else nào.
+Tóm lại cho dự án SMILE HR:
+Việc bạn không thấy Pydantic trong Flask là bình thường, vì Flask dùng các cách "thủ công" hơn. Khi bạn chuyển sang FastAPI, Pydantic sẽ là công cụ đắc lực nhất giúp bạn:
+Dọn dẹp code: Bỏ hết các đoạn if/else kiểm tra dữ liệu rác.
+An toàn cho SQL Server: Đảm bảo chỉ có dữ liệu "sạch" mới được đẩy vào lệnh INSERT/UPDATE của pyodbc.
+--------------------------------------- (Uvicorn + APIRouter + Pydantic)
+Để dự án SMILE HR chuyển từ Flask sang FastAPI thành công, bạn chỉ cần nắm vững "Bộ ba quyền lực" mới này. Chúng thay thế trực tiếp cho những gì bạn đang dùng ở Flask nhưng mạnh mẽ hơn nhiều.
+Dưới đây là bảng tổng hợp cực kỳ dễ hiểu:
+1. Uvicorn (Cỗ máy vận hành)
+Thay thế cho: Waitress (trong file .bat của bạn).
+Nhiệm vụ: Là cái "đầu máy" kéo toàn bộ ứng dụng Python của bạn chạy trên mạng.
+Điểm mới: Uvicorn chạy theo chuẩn ASGI (bất đồng bộ).
+Waitress (Flask): Xử lý từng người một (như xếp hàng mua vé).
+Uvicorn (FastAPI): Xử lý hàng nghìn người cùng lúc (như cổng thu phí tự động).
+Cách dùng: Bạn chỉ thay đổi lệnh trong file .bat:
+python -m uvicorn main:app --host 127.0.0.1 --port 6066
+2. APIRouter (Kiến trúc phân tầng)
+Thay thế cho: Blueprint (trong thư mục views/).
+Nhiệm vụ: Chia nhỏ dự án HR thành các mảng: Nhân viên, Phòng ban, Phân quyền.
+Điểm mới: Không chỉ gom nhóm URL, APIRouter còn tự động gom nhóm Tài liệu (Docs).
+Trong Flask, Blueprint chỉ để quản lý code.
+Trong FastAPI, APIRouter giúp trang /docs hiển thị ngăn nắp: Mục "Employee", Mục "Department" riêng biệt với đầy đủ hướng dẫn sử dụng.
+3. Pydantic (Người gác cổng dữ liệu)
+Thay thế cho: Các câu lệnh if/else kiểm tra dữ liệu (Validation).
+Nhiệm vụ: Định nghĩa "cái khuôn" cho dữ liệu.
+Điểm mới: Đây là thứ Flask không có sẵn.
+Bạn khai báo: age: int. Nếu người dùng nhập "ba mươi", Pydantic tự chặn lại và báo lỗi ngay lập tức, không để dữ liệu rác chạm vào câu lệnh SQL pyodbc của bạn.
+Nó giúp chuyển kết quả từ cursor.fetchall() sang định dạng JSON cực đẹp để trả về cho file .js ở giao diện.
+Tổng kết sự thay đổi trong dự án SMILE HR của bạn:
+Thành phần	Ở Flask (Cũ)	Ở FastAPI (Mới)		Lợi ích cho SMILE HR
+Server		Waitress	Uvicorn			Web chạy cực nhanh, không bị treo khi đông người.
+Tổ chức		Blueprint	APIRouter		Code sạch, tự động có trang hướng dẫn API (/docs).
+Dữ liệu	      if/else thủ công	Pydantic		Chặn đứng dữ liệu sai trước khi lưu vào SQL Server.
+Lời khuyên thực chiến:
+Khi bạn sửa file .bat và bắt đầu viết file main.py, hãy cứ dùng pyodbc như cũ để truy vấn SQL. Bạn chỉ cần bọc các câu lệnh đó vào APIRouter và dùng Pydantic để hứng dữ liệu.
+Bước tiếp theo: Bạn có muốn tôi viết một file main.py mẫu tích hợp cả 3 khái niệm này (Uvicorn + APIRouter + Pydantic) để bạn chạy thử nghiệm trên máy mình không?
