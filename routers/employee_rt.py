@@ -16,6 +16,16 @@ async def save_employee(data: EmployeeCreate, db: Connection = Depends(get_db)):
     new_id = EmployeeController.save(db, data)
     return {"status": "success", "id": new_id}
 
+@router.delete("/api/delete/{emp_id}")
+async def delete_employee(emp_id: int, db: Connection = Depends(get_db)):
+    try:
+        success = EmployeeController.delete(db, emp_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Không tìm thấy nhân viên để xóa")
+        return {"status": "success", "message": f"Đã xóa nhân viên ID: {emp_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @router.get("/api/export")
 async def export_employees(db: Connection = Depends(get_db)):
     file_out = EmployeeController.export_excel(db)
@@ -25,12 +35,6 @@ async def export_employees(db: Connection = Depends(get_db)):
         headers={"Content-Disposition": "attachment; filename=Employees.xlsx"}
     )
 
-@router.post("/api/import")
-async def import_employees(file: UploadFile = File(...), db: Connection = Depends(get_db)):
-    content = await file.read()
-    # Bạn gọi hàm import_excel từ Controller ở đây
-    # ...
-    return {"status": "success"}
 
 # API Tải file mẫu
 @router.get("/api/template")

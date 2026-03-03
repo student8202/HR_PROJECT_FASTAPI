@@ -1,6 +1,7 @@
 import pandas as pd
 from io import BytesIO
 from pyodbc import Connection
+from loguru import logger
 from schemas.employee import EmployeeCreate
 
 class EmployeeController:
@@ -38,8 +39,10 @@ class EmployeeController:
     @staticmethod
     def delete(db: Connection, emp_id: int):
         cursor = db.cursor()
-        cursor.execute("DELETE FROM Employees WHERE ID=?", (emp_id,))
+        query = "DELETE FROM Employees WHERE id = ?"
+        cursor.execute(query, (emp_id,))
         db.commit()
+        return cursor.rowcount > 0 # Trả về True nếu có dòng bị xóa
 
     @staticmethod
     def export_excel(db: Connection):
@@ -77,21 +80,32 @@ class EmployeeController:
     def import_excel(db: Connection, file_content: bytes):
         # Đọc dữ liệu từ bytes gửi lên
         df = pd.read_excel(BytesIO(file_content))
-        
+        print(f"Số dòng tìm thấy trong Excel: {len(df)}") # <-- THÊM DÒNG NÀY
         cursor = db.cursor()
         # Lấy bản đồ tên -> ID để ánh xạ
         cursor.execute("SELECT DeptID, DeptName FROM Departments")
         dept_map = {row.DeptName: row.DeptID for row in cursor.fetchall()}
 
+        # --- ĐOẠN DEBUG BẮT ĐẦU TẠI ĐÂY ---
+        print("--- DEBUG IMPORT ---")
+        print("Cột trong file Excel:", df.columns.tolist())
+        print("Danh sách DeptMap từ DB:", dept_map)
+        
         import_data = []
         for _, row in df.iterrows():
             fullname = str(row.get("FullName", "")).strip()
             dept_name = str(row.get("DepartmentName", "")).strip()
-            dept_id = dept_map.get(dept_name)
+            dept_id = int(dept_map.get(dept_name)) if dept_map.get(dept_name) else None
 
+            # In từng dòng ra Console để xem tại sao không khớp
+            logger.info(f"Đang xử lý: {fullname}")
+            print(f"Dòng Excel: '{fullname}' | Phòng ban: '{dept_name}' | ID tìm thấy: {dept_id}")
+            
             if fullname and dept_id: # Chỉ import nếu có tên và phòng ban hợp lệ
                 import_data.append((fullname, dept_id))
-
+        
+        print(f"Tổng số dòng thỏa mãn điều kiện để Insert: {len(import_data)}")
+        # --- ĐOẠN DEBUG KẾT THÚC ---
         if import_data:
             try:
                 cursor.executemany(

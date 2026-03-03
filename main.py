@@ -1,5 +1,8 @@
 import os
 import uvicorn
+import sys
+import io
+from loguru import logger
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,7 +17,11 @@ from routers.department_rt import router as department_router
 from routers.permission_rt import router as perm_router
 
 app = FastAPI(title=settings.PROJECT_NAME)
-
+# Ép terminal dùng UTF-8 để hiện tiếng Việt
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# Xóa cấu hình mặc định và thêm cấu hình hỗ trợ UTF-8 cho Terminal
+logger.remove()
+logger.add(sys.stderr, colorize=True, format="<green>{time}</green> | <level>{message}</level>", diagnose=False)
 # --- QUAN TRỌNG: THỨ TỰ MIDDLEWARE ---
 
 # --- CẤU HÌNH MIDDLEWARE ---

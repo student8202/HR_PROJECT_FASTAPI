@@ -5,13 +5,13 @@ function openEmpModal() {
 }
 function saveEmp() {
     $.ajax({
-        url: '/api/employees/save', type: 'POST', contentType: 'application/json',
+        url: '/employees/api/save', type: 'POST', contentType: 'application/json',
         data: JSON.stringify({ FullName: $('#empName').val(), IdDepartment: $('#empDeptSelect').val() }),
         success: () => { $('#empModal').modal('hide'); empTable.ajax.reload(); Swal.fire('Xong!', '', 'success'); }
     });
 }
 function delEmp(id) {
-    if (confirm('Xóa?')) $.ajax({ url: `/api/employees/delete/${id}`, type: 'DELETE', success: () => empTable.ajax.reload() });
+    if (confirm('Xóa?')) $.ajax({ url: `/employees/api/delete/${id}`, type: 'DELETE', success: () => empTable.ajax.reload() });
 }
 function delEmp(row) {
     Swal.fire({
@@ -27,7 +27,7 @@ function delEmp(row) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: `/api/employees/delete/${row.ID}`,
+                url: `/employees/api/delete/${row.ID}`,
                 type: 'DELETE',
                 success: function () {
                     // Reload và giữ nguyên paging (false)
@@ -62,9 +62,10 @@ function saveEmp() {
     // 1. Lấy dữ liệu từ Form
     const empId = $('#empId').val();
     const payload = {
-        ID: empId,
+        // Ép kiểu ID về số nguyên, nếu rỗng thì để là 0 hoặc null
+        ID: empId ? parseInt(empId) : 0,
         FullName: $('#empName').val().trim(),
-        IdDepartment: $('#empDeptSelect').val()
+        IdDepartment: parseInt($('#empDeptSelect').val())
     };
 
     // 2. Kiểm tra dữ liệu (Validate)
@@ -78,7 +79,7 @@ function saveEmp() {
     }
 
     $.ajax({
-        url: '/api/employees/save',
+        url: '/employees/api/save',
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(payload),
@@ -125,7 +126,10 @@ function saveEmp() {
             Swal.fire(t('msg_success') || 'Thành công!', t('save_success') || 'Dữ liệu đã được cập nhật', 'success');
         },
         error: function (err) {
-            Swal.fire('Error', err.responseJSON?.message || 'Lỗi kết nối server', 'error');
+            // Hiển thị chi tiết lỗi 422 từ FastAPI
+            const errorDetail = err.responseJSON?.detail;
+            const msg = typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail;
+            Swal.fire('Lỗi dữ liệu', msg || 'Lỗi kết nối server', 'error');
         }
     });
 }
@@ -133,7 +137,7 @@ function saveEmp() {
 // --- HÀM TẢI FILE MẪU (TEMPLATE) ---
 function downloadEmpTemplate() {
     // Chuyển hướng trực tiếp để trình duyệt tự tải file về
-    window.location.href = '/api/employees/template';
+    window.location.href = '/employees/api/template';
 }
 
 // --- HÀM XUẤT EXCEL (EXPORT) ---
@@ -145,7 +149,7 @@ function exportEmpExcel() {
     });
 
     // Tải file về
-    window.location.href = '/api/employees/export';
+    window.location.href = '/employees/api/export';
 
     // Đóng loading sau 1 giây
     setTimeout(() => { Swal.close(); }, 1500);
@@ -175,7 +179,7 @@ function handleImportEmp(input) {
     formData.append('file', file);
 
     $.ajax({
-        url: '/api/employees/import',
+        url: '/employees/api/import',
         type: 'POST',
         data: formData,
         processData: false, // Quan trọng: không xử lý dữ liệu

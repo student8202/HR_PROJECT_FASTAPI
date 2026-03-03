@@ -175,4 +175,28 @@ Backend nhận được yêu cầu /login
  Không thấy route này (404) 
  Sập Server.
 Hành động ngay: Bạn hãy sửa file app.js trên máy, lưu lại, sau đó mở trình duyệt nhấn Ctrl + F5 (để xóa cache JS cũ) rồi truy cập lại http://127.0.0.1.
+----------------------------------------------
+Để ẩn một tag hoặc một API cụ thể trong trang /docs (Swagger UI) của FastAPI, bạn có 2 cách thực hiện tùy vào mục đích:
+Cách 1: Ẩn hoàn toàn Router (Ẩn cả Tag và các API bên trong)
+Trong file main.py, khi bạn nhúng auth_router, hãy thêm tham số include_in_schema=False. Đây là cách nhanh nhất để "giấu" toàn bộ phần xác thực khỏi tài liệu công khai.
+python
+# main.py
+app.include_router(auth_router, include_in_schema=False)
+Hãy thận trọng khi sử dụng mã.
 
+Lưu ý: API vẫn hoạt động bình thường, chỉ là nó không hiển thị trên giao diện /docs. FastAPI Advanced Custom Docs.
+Cách 2: Ẩn từng API cụ thể trong Router
+Nếu bạn chỉ muốn ẩn một vài đường dẫn (ví dụ ẩn API login nhưng hiện trang login), hãy thêm tham số vào decorator trong file routers/auth_rt.py:
+python
+# routers/auth_rt.py
+@router.post("/api/login", include_in_schema=False)
+async def api_login(...):
+    # API này sẽ bị ẩn khỏi /docs
+    pass
+Hãy thận trọng khi sử dụng mã.
+----------------------
+pip install loguru
+from loguru import logger
+
+# Thay print bằng logger.info
+logger.info(f"Đang xử lý: {fullname}")

@@ -1,11 +1,17 @@
 const Auth = {
     // --- HÀM ĐĂNG NHẬP (Chuyển từ login.html sang đây) ---
-    doLogin: async function () {
+    doLogin: async function (event) {
+        if (event) event.preventDefault(); // Chặn đứng việc load lại trang
+
+        // 1. Reset lại thông báo lỗi trước khi bấm
+        $('#error-msg').addClass('d-none').text("");
+        
         const username = $('#user').val();
         const password = $('#pass').val();
 
         if (!username || !password) {
-            alert("Vui lòng nhập tài khoản và mật khẩu");
+            // Thay vì alert() trình duyệt xấu xí, dùng ngay div error của bạn
+            $('#error-msg').text("Vui lòng nhập tài khoản và mật khẩu").removeClass('d-none');
             return;
         }
 
