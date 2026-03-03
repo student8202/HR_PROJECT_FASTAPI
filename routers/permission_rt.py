@@ -3,7 +3,7 @@ from pyodbc import Connection
 from database import get_db
 from controllers.permission_ctl import PermissionController
 
-router = APIRouter(prefix="/api/permissions", tags=["Phân Quyền"])
+router = APIRouter( tags=["Phân Quyền"])
 
 @router.get("/view-list")
 async def get_view_list(request: Request, db: Connection = Depends(get_db)):

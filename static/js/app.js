@@ -4,6 +4,7 @@ $(document).ready(function () {
     // 0. Kiểm tra đăng nhập (Bảo mật Frontend)
     const userPerms = localStorage.getItem('userPerms');
     if (!userPerms && window.location.pathname !== '/auth/login') {
+       //console.log('I am here')
         window.location.href = '/auth/login';
         return;
     }
@@ -79,7 +80,7 @@ function initEmpTable(langUrl) {
     empTable = $('#empTable').DataTable({
         dom: 'Bfrtip',
         buttons: ['copy', 'excel', 'pdf', 'print'],
-        ajax: { url: '/api/employees', dataSrc: '' },
+        ajax: { url: '/employees/api/all', dataSrc: '' },
         language: { url: langUrl },
         columns: [
             { data: 'ID' },
@@ -104,7 +105,7 @@ function initDeptTable(langUrl) {
     deptTable = $('#deptTable').DataTable({
         dom: 'Bfrtip',
         buttons: ['copy', 'excel', 'pdf', 'print'],
-        ajax: { url: '/api/departments', dataSrc: '' },
+        ajax: { url: '/departments/api/all', dataSrc: '' },
         language: { url: langUrl },
         columns: [
             { data: 'DeptID' },
@@ -139,7 +140,7 @@ function reloadDataTableLanguage() {
 // Load dropdown bộ phận với Select2 search
 function loadDeptsToDropdown() {
     $.ajax({
-        url: '/api/departments',
+        url: '/departments/api/all',
         type: 'GET',
         success: function (data) {
             let html = `<option value="">${t('placeholder_dept') || '-- Chọn bộ phận --'}</option>`;

@@ -13,8 +13,11 @@ templates = Jinja2Templates(directory="templates")
 # 1. Trang hiển thị Login
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
+    # Nếu đã login rồi thì mới đẩy về trang chủ
     if request.session.get("user_id"):
         return RedirectResponse(url="/", status_code=303)
+    
+    # Nếu chưa login, CHỈ trả về template, KHÔNG redirect thêm lần nào nữa
     return templates.TemplateResponse("login.html", {"request": request})
 
 # 2. API Login (Sử dụng Schema & Dependency Injection)

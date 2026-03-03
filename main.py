@@ -54,7 +54,7 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 # 4. Đăng ký Routers
-app.include_router(auth_router)
+app.include_router(auth_router, include_in_schema=False)
 app.include_router(employee_router, prefix="/employees", tags=["Nhân viên"])
 app.include_router(department_router, prefix="/departments", tags=["Phòng ban"])
 app.include_router(perm_router, prefix="/permissions", tags=["Phân quyền"])

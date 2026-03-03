@@ -5,7 +5,7 @@ from database import get_db
 from controllers.employee_ctl import EmployeeController
 from schemas.employee import EmployeeCreate
 
-router = APIRouter(prefix="/employees", tags=["Nhân viên"])
+router = APIRouter(tags=["Nhân viên"])
 
 @router.get("/api/all")
 async def get_employees(db: Connection = Depends(get_db)):

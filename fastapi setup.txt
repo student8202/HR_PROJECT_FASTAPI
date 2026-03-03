@@ -163,3 +163,16 @@ Trong FastAPI, middleware được xếp chồng như lớp vỏ hành. Lệnh a
 1. Khi Request đến: Nó đi qua log_requests (lớp ngoài) -> rồi mới qua SessionMiddleware (lớp trong).
 2. Khi Response quay về: Nó đi từ SessionMiddleware (đã nạp session vào request) -> rồi mới quay lại log_requests. Lúc này, hàm log_requests mới có thể đọc được request.session.
 đưa SessionMiddleware xuống sau @app.middleware("http")
+TẠI SAO BẠN BỊ REDIRECT VÒNG LẶP?
+Bạn truy cập /.
+Backend (main.py) thấy chưa login 
+ Đẩy bạn sang /auth/login. (ĐÚNG)
+Trình duyệt tải trang /auth/login 
+ Chạy file app.js.
+Frontend (app.js) của bạn thấy chưa login và kiểm tra window.location.pathname. Nếu code cũ là !== '/login', thì lúc này pathname đang là '/auth/login', nó thấy khác nhau 
+ Nó lại đẩy bạn sang /login. (SAI)
+Backend nhận được yêu cầu /login 
+ Không thấy route này (404) 
+ Sập Server.
+Hành động ngay: Bạn hãy sửa file app.js trên máy, lưu lại, sau đó mở trình duyệt nhấn Ctrl + F5 (để xóa cache JS cũ) rồi truy cập lại http://127.0.0.1.
+

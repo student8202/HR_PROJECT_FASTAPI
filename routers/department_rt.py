@@ -4,7 +4,7 @@ from database import get_db
 from controllers.department_ctl import DepartmentController
 from schemas.department import DepartmentSaveRequest
 
-router = APIRouter(prefix="/departments", tags=["Phòng ban"])
+router = APIRouter(tags=["Phòng ban"])
 
 @router.get("/api/all")
 async def get_departments(db: Connection = Depends(get_db)):

@@ -6,8 +6,12 @@ class DepartmentController:
     def get_all(db: Connection):
         cursor = db.cursor()
         cursor.execute("SELECT DeptID, DeptName FROM Departments ORDER BY DeptName")
-        columns = [col[0] for col in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        # Cách lấy tên cột chuẩn nhất cho FastAPI JSON
+        columns = [column[0] for column in cursor.description]
+        results = []
+        for row in cursor.fetchall():
+            results.append(dict(zip(columns, row)))
+        return results
 
     @staticmethod
     def save(db: Connection, data: DepartmentSaveRequest):
