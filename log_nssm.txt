@@ -1,4 +1,4 @@
-[Tue 03/03/2026 22:34:39.94] Dang kiem tra thu vien FastAPI...
+[Tue 03/03/2026 22:51:14.15] Dang kiem tra thu vien FastAPI...
 Requirement already satisfied: fastapi in c:\program files\python312\lib\site-packages (0.135.1)
 Requirement already satisfied: uvicorn in c:\program files\python312\lib\site-packages (0.41.0)
 Requirement already satisfied: jinja2 in c:\windows\system32\config\systemprofile\appdata\roaming\python\python312\site-packages (3.1.6)
@@ -33,20 +33,60 @@ Requirement already satisfied: win32-setctime>=1.0.0 in c:\program files\python3
 
 [notice] A new release of pip is available: 25.0.1 -> 26.0.1
 [notice] To update, run: C:\Program Files\Python312\python.exe -m pip install --upgrade pip
-[Tue 03/03/2026 22:34:43.39] Dang khoi dong FastAPI Server...
+[Tue 03/03/2026 22:51:17.77] Dang khoi dong FastAPI Server...
 INFO:     Will watch for changes in these directories: ['C:\\SMILE PMS\\HR_PROJECT_FASTAPI']
 WARNING:  "workers" flag is ignored when reloading is enabled.
 INFO:     Uvicorn running on http://127.0.0.1:6066 (Press CTRL+C to quit)
-INFO:     Started reloader process [11620] using StatReload
-INFO:     Started server process [1696]
+INFO:     Started reloader process [24400] using StatReload
+INFO:     Started server process [5448]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
 INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:0 - "GET /departments/api/all HTTP/1.1" 200 OK
-INFO:     127.0.0.1:0 - "GET /employees/api/all?_=1772552085687 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:0 - "GET /departments/api/all?_=1772552085688 HTTP/1.1" 200 OK
-[32m2026-03-03T22:34:52.389661+0700[0m | [1m\u0110ang x\u1eed lý: Tr\u1ea7n Th\u1ecb Thúi[0m
-[32m2026-03-03T22:34:52.389661+0700[0m | [1m\u0110ang x\u1eed lý: Tr\u1ea7n V\u0103n Thui[0m
-INFO:     127.0.0.1:0 - "POST /employees/api/import HTTP/1.1" 200 OK
-INFO:     127.0.0.1:0 - "GET /employees/api/all?_=1772552085689 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /employees/api/all?_=1772553081241 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all?_=1772553081242 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "DELETE /departments/api/delete/1037 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all?_=1772553081243 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "DELETE /departments/api/delete/1036 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all?_=1772553081244 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /departments/api/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /employees/api/all?_=1772553104456 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all?_=1772553104457 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /departments/api/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /employees/api/all?_=1772553107422 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all?_=1772553107423 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /departments/api/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /employees/api/all?_=1772553109049 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all?_=1772553109050 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /departments/api/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /employees/api/all?_=1772553226381 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all?_=1772553226382 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /departments/api/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /employees/api/all?_=1772553239501 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /departments/api/all?_=1772553239502 HTTP/1.1" 200 OK

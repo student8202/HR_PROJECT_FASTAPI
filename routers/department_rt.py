@@ -17,7 +17,7 @@ async def save_department(data: DepartmentSaveRequest, db: Connection = Depends(
         return {"status": "error", "message": message}
     return {"status": "success", "message": message}
 
-@router.get("/api/delete/{dept_id}")
+@router.delete("/api/delete/{dept_id}")
 async def delete_department(dept_id: int, db: Connection = Depends(get_db)):
     success, message = DepartmentController.delete(db, dept_id)
     if not success:

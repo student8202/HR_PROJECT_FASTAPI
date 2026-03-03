@@ -5,14 +5,14 @@ function openDeptModal() {
 }
 function saveDept() {
     $.ajax({
-        url: '/api/departments/save', type: 'POST', contentType: 'application/json',
+        url: '/departments/api/save', type: 'POST', contentType: 'application/json',
         data: JSON.stringify({ DeptName: $('#deptName').val() }),
         success: () => { $('#deptModal').modal('hide'); deptTable.ajax.reload(); loadDeptsToDropdown(); }
     });
 }
-function delDept(id) {
-    if (confirm('Xóa?')) $.ajax({ url: `/api/departments/delete/${id}`, type: 'DELETE', success: () => deptTable.ajax.reload() });
-}
+// function delDept(id) {
+//     if (confirm('Xóa?')) $.ajax({ url: `/departments/api/delete/${id}`, type: 'DELETE', success: () => deptTable.ajax.reload() });
+// }
 function delDept(row) {
     Swal.fire({
         title: 'Xác nhận xóa bộ phận?',
@@ -25,7 +25,7 @@ function delDept(row) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: `/api/departments/delete/${row.DeptID}`,
+                url: `/departments/api/delete/${row.DeptID}`,
                 type: 'DELETE',
                 success: function (response) {
                     deptTable.ajax.reload();
@@ -54,8 +54,10 @@ function editDept(row) {
 }
 
 function saveDept() {
+    const rawId = $('#deptId').val();
     const data = {
-        DeptID: $('#deptId').val(),
+        // Nếu ID rỗng (thêm mới) thì gửi 0, nếu có thì ép kiểu sang số nguyên
+        DeptID: rawId ? parseInt(rawId) : 0, 
         DeptName: $('#deptName').val().trim()
     };
 
@@ -65,7 +67,7 @@ function saveDept() {
     }
 
     $.ajax({
-        url: '/api/departments/save',
+        url: '/departments/api/save',
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(data),

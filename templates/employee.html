@@ -11,13 +11,13 @@
             </button>
 
             <!-- Export -->
-            <button class="btn btn-outline-success" onclick="exportEmpExcel()" data-i18n="buttons.export_excel">
-                <i class="fas fa-file-export"></i> Xuất Excel
+            <button class="btn btn-outline-success" onclick="exportEmpExcel()">
+                <i class="fas fa-file-export"></i> <span data-i18n="buttons.export_excel">Xuất Excel</span>
             </button>
 
             <!-- Import -->
-            <button class="btn btn-success" onclick="document.getElementById('importFile').click()" data-i18n="buttons.import_excel">
-                <i class="fas fa-upload"></i> Nhập Excel
+            <button class="btn btn-success" onclick="document.getElementById('importFile').click()">
+                <i class="fas fa-upload"></i> <span data-i18n="buttons.import_excel">Nhập Excel</span>
             </button>
             <!-- Input file ẩn -->
             <input type="file" id="importFile" hidden accept=".xlsx, .xls" onchange="handleImportEmp(this)">
