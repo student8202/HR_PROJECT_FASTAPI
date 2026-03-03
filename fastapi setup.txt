@@ -162,3 +162,4 @@ Bạn có muốn tôi hướng dẫn cách tạo một Trang xem Nhật ký (Log
 Trong FastAPI, middleware được xếp chồng như lớp vỏ hành. Lệnh app.add_middleware khai báo sau sẽ nằm ở lớp bên trong.
 1. Khi Request đến: Nó đi qua log_requests (lớp ngoài) -> rồi mới qua SessionMiddleware (lớp trong).
 2. Khi Response quay về: Nó đi từ SessionMiddleware (đã nạp session vào request) -> rồi mới quay lại log_requests. Lúc này, hàm log_requests mới có thể đọc được request.session.
+đưa SessionMiddleware xuống sau @app.middleware("http")

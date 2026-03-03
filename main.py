@@ -17,28 +17,29 @@ app = FastAPI(title=settings.PROJECT_NAME)
 
 # --- QUAN TRỌNG: THỨ TỰ MIDDLEWARE ---
 
-# 1. Log Middleware (Khai báo trước để bọc bên ngoài Session)
+# --- CẤU HÌNH MIDDLEWARE ---
+# 1. Khai báo Log Middleware TRƯỚC (Nó sẽ bọc ngoài cùng)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    # Cho request đi qua các middleware khác và router trước
+    # Cho request đi qua
     response = await call_next(request)
     
-    # Chỉ ghi log sau khi đã có kết quả (đảm bảo SessionMiddleware đã chạy xong)
     try:
-        user_name = request.session.get("user_name", "Anonymous")
-        ip = request.client.host
-        path = request.url.path
-        method = request.method
-        
-        # Gọi hàm ghi log từ database.py
-        write_system_log(user_name, method, path, response.status_code, ip)
-    except Exception:
-        # Bỏ qua nếu request không có session (như file tĩnh)
+        # Kiểm tra xem 'session' có trong scope không trước khi truy cập
+        if "session" in request.scope:
+            user_name = request.session.get("user_name", "Anonymous")
+            path = request.url.path
+            method = request.method
+            ip = request.client.host
+            write_system_log(user_name, method, path, response.status_code, ip)
+    except Exception as e:
+        # Ghi log lỗi ra console để debug nếu cần, nhưng không làm sập app
+        print(f"Log Middleware Error: {e}")
+        # Tuyệt đối không để lỗi log làm sập ứng dụng
         pass
-        
     return response
 
-# 2. SessionMiddleware (Khai báo SAU log_middleware để nó nằm "gần" Router hơn)
+# 2. Khai báo SessionMiddleware SAU (Nó nằm gần Router hơn)
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # --- CẤU HÌNH STATIC & TEMPLATES ---

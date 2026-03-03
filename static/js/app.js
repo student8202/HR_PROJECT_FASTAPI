@@ -3,8 +3,8 @@ let empTable, deptTable;
 $(document).ready(function () {
     // 0. Kiểm tra đăng nhập (Bảo mật Frontend)
     const userPerms = localStorage.getItem('userPerms');
-    if (!userPerms && window.location.pathname !== '/login') {
-        window.location.href = '/login';
+    if (!userPerms && window.location.pathname !== '/auth/login') {
+        window.location.href = '/auth/login';
         return;
     }
 

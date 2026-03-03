@@ -1,4 +1,4 @@
-[Tue 03/03/2026 13:59:37.75] Dang kiem tra thu vien FastAPI...
+[Tue 03/03/2026 14:32:06.63] Dang kiem tra thu vien FastAPI...
 Requirement already satisfied: fastapi in c:\program files\python312\lib\site-packages (0.135.1)
 Requirement already satisfied: uvicorn in c:\program files\python312\lib\site-packages (0.41.0)
 Requirement already satisfied: jinja2 in c:\windows\system32\config\systemprofile\appdata\roaming\python\python312\site-packages (3.1.6)
@@ -27,121 +27,56 @@ Requirement already satisfied: idna>=2.8 in c:\program files\python312\lib\site-
 
 [notice] A new release of pip is available: 25.0.1 -> 26.0.1
 [notice] To update, run: C:\Program Files\Python312\python.exe -m pip install --upgrade pip
-[Tue 03/03/2026 13:59:39.54] Dang khoi dong FastAPI Server...
+[Tue 03/03/2026 14:32:08.42] Dang khoi dong FastAPI Server...
 INFO:     Uvicorn running on http://127.0.0.1:6066 (Press CTRL+C to quit)
-INFO:     Started parent process [3840]
-INFO:     Started server process [23188]
+INFO:     Started parent process [14380]
+INFO:     Started server process [19448]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Started server process [6492]
+INFO:     Started server process [6856]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Started server process [13692]
+INFO:     Started server process [4604]
+INFO:     Waiting for application startup.
+INFO:     Started server process [23512]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Started server process [13444]
-INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 303 See Other
-INFO:     127.0.0.1:0 - "GET /auth/login HTTP/1.1" 500 Internal Server Error
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Program Files\Python312\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 410, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\fastapi\applications.py", line 1160, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\applications.py", line 107, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
-    await self.app(scope, receive, send_wrapper)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    with recv_stream, send_stream, collapse_excgroups():
-                                   ^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\contextlib.py", line 158, in __exit__
-    self.gen.throw(value)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
-    raise exc
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\SMILE PMS\HR_PROJECT_FASTAPI\main.py", line 24, in log_requests
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
-    raise app_exc from app_exc.__cause__ or app_exc.__context__
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
-    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
-    raise exc
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
-    await app(scope, receive, sender)
-  File "C:\Program Files\Python312\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
-    await self.app(scope, receive, send)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\routing.py", line 716, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\routing.py", line 736, in app
-    await route.handle(scope, receive, send)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\routing.py", line 290, in handle
-    await self.app(scope, receive, send)
-  File "C:\Program Files\Python312\Lib\site-packages\fastapi\routing.py", line 130, in app
-    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
-    raise exc
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
-    await app(scope, receive, sender)
-  File "C:\Program Files\Python312\Lib\site-packages\fastapi\routing.py", line 116, in app
-    response = await f(request)
-               ^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\fastapi\routing.py", line 670, in app
-    raw_response = await run_endpoint_function(
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\fastapi\routing.py", line 324, in run_endpoint_function
-    return await dependant.call(**values)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\SMILE PMS\HR_PROJECT_FASTAPI\routers\auth_rt.py", line 18, in login_page
-    return templates.TemplateResponse("login.html", {"request": request})
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\templating.py", line 210, in TemplateResponse
-    return _TemplateResponse(
-           ^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\templating.py", line 41, in __init__
-    content = template.render(context)
-              ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\WINDOWS\system32\config\systemprofile\AppData\Roaming\Python\Python312\site-packages\jinja2\environment.py", line 1295, in render
-    self.environment.handle_exception()
-  File "C:\WINDOWS\system32\config\systemprofile\AppData\Roaming\Python\Python312\site-packages\jinja2\environment.py", line 942, in handle_exception
-    raise rewrite_traceback_stack(source=source)
-  File "templates\login.html", line 25, in top-level template code
-    {% include 'footer.html' %}
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "templates\footer.html", line 27, in top-level template code
-    <script src="{{ url_for('static', filename='js/languages.js') }}"></script>
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\templating.py", line 127, in url_for
-    return request.url_for(name, **path_params)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\requests.py", line 196, in url_for
-    url_path = url_path_provider.url_path_for(name, **path_params)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python312\Lib\site-packages\starlette\routing.py", line 663, in url_path_for
-    raise NoMatchFound(name, path_params)
-starlette.routing.NoMatchFound: No route exists for name "static" and params "filename".
 INFO:     127.0.0.1:0 - "GET /auth/login HTTP/1.1" 200 OK
 INFO:     127.0.0.1:0 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:0 - "GET / HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:0 - "GET /auth/login HTTP/1.1" 200 OK
 INFO:     127.0.0.1:0 - "GET /login HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:0 - "GET /login HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:0 - "GET /login HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:0 - "GET /login HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:0 - "GET /login HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:0 - "GET /login HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:0 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61170 - "GET / HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:61170 - "GET /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61170 - "GET /static/js/languages.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61170 - "GET /static/js/auth_handler.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61170 - "GET /static/js/app.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61170 - "GET /static/js/employee.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61170 - "GET /static/js/department.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61170 - "GET /static/js/permission.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61170 - "GET /static/lang/en.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57075 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61170 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:4351 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37147 - "GET / HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:37147 - "GET /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37147 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37147 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37147 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49884 - "GET / HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:49884 - "GET /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49884 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49884 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49884 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63692 - "GET / HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:63692 - "GET /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63692 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63692 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63692 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:11392 - "GET / HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:11392 - "GET /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:11392 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:11392 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:11392 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
