@@ -3,7 +3,7 @@ import uvicorn
 import sys
 import io
 from loguru import logger
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -16,7 +16,40 @@ from routers.employee_rt import router as employee_router
 from routers.department_rt import router as department_router
 from routers.permission_rt import router as perm_router
 
-app = FastAPI(title=settings.PROJECT_NAME)
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import secrets
+
+# Gộp tất cả cấu hình vào một nơi
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    docs_url=None,   # Tắt Swagger mặc định để tự tạo route bảo vệ
+    redoc_url=None   # Tắt ReDoc mặc định
+)
+
+security = HTTPBasic()
+def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
+    # Thay 'admin' và 'secret_key' bằng thông tin bạn muốn
+    correct_username = secrets.compare_digest(credentials.username, "admin")
+    correct_password = secrets.compare_digest(credentials.password, "project")
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Không có quyền truy cập tài liệu",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+# Tạo lại route docs nhưng có bảo vệ
+@app.get("/docs", include_in_schema=False)
+async def get_documentation(username: str = Depends(get_current_username)):
+    from fastapi.openapi.docs import get_swagger_ui_html
+    return get_swagger_ui_html(openapi_url="/openapi.json", title="API Docs")
+
+@app.get("/openapi.json", include_in_schema=False)
+async def openapi(username: str = Depends(get_current_username)):
+    from fastapi.openapi.utils import get_openapi
+    return get_openapi(title="HR Project API", version="1.0.0", routes=app.routes)
+
 # Ép terminal dùng UTF-8 để hiện tiếng Việt
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 # Xóa cấu hình mặc định và thêm cấu hình hỗ trợ UTF-8 cho Terminal
