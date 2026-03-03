@@ -1,0 +1,164 @@
+SMILE_HR_PRO/
+├── core/                # Cấu hình hệ thống & Bảo mật
+│   ├── config.py        # Đọc biến môi trường, Secret Key
+│   └── security.py      # Xử lý Hash Password (bcrypt) & JWT
+├── database.py          # Quản lý Connection Pooling (pyodbc)
+├── schemas/             # Pydantic Models (Kiểm soát dữ liệu vào/ra)
+│   ├── employee.py      # Định nghĩa Schema cho Nhân viên
+│   └── auth.py          # Schema cho Login/Token
+├── controllers/         # Logic nghiệp vụ & SQL Store Procedures
+│   ├── employee_ctl.py
+│   └── attendance_ctl.py
+├── routers/             # API Endpoints (Thay thế Blueprint)
+│   ├── employee_rt.py
+│   └── auth_rt.py
+├── static/              # CSS, JS, Images (Nginx phục vụ)
+├── templates/           # Jinja2 HTML (Giao diện)
+├── main.py              # File chạy chính (Uvicorn)
+└── requirements.txt     # Danh sách thư viện
+-----------------------------
+pip install -r requirements.txt
+Lệnh này sẽ tự động đọc file và cài đặt "tận răng" tất cả thư viện đúng phiên bản bạn cần. Tham khảo tài liệu chính thức về pip install.
+3. Tích hợp hoàn hảo với File .bat của bạn
+Như trong file .bat bạn đã viết, thay vì liệt kê một hàng dài:
+"C:\...\python.exe" -m pip install fastapi uvicorn jinja2...
+Bạn chỉ cần sửa thành:
+"C:\...\python.exe" -m pip install -r requirements.txt --user
+Cách này giúp file .bat của bạn cực kỳ gọn gàng và dễ quản lý khi dự án phình to ra.
+text
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+jinja2==3.1.3
+python-multipart==0.0.6
+pyodbc==5.0.1
+pandas==2.2.0
+openpyxl==3.1.2
+starlette==0.35.1
+Hãy thận trọng khi sử dụng mã.
+------------------------ Schema, Router, và Controller
+Hãy tưởng tượng Schema, Router, và Controller là 3 lớp bảo vệ và xử lý dữ liệu từ ngoài vào trong:
+Schema (Cổng kiểm soát): Kiểm tra xem dữ liệu khách hàng gửi lên có "đúng hình dạng" không (có đủ tên, mật khẩu không, có bị trống không).
+Router (Lễ tân): Tiếp nhận yêu cầu (Request), lấy dữ liệu đã kiểm tra từ Schema, đưa cho Controller xử lý, rồi lấy kết quả trả về cho khách hàng.
+Controller (Nhân viên xử lý): Chứa "não bộ" của ứng dụng. Nó thực hiện tính toán, truy vấn SQL Server, logic nghiệp vụ.
+Bảng so sánh để bạn dễ hình dung:
+Thành phần		Vai trò chính		Thao tác cụ thể
+Schema (pydantic)	Định dạng dữ liệu	"Dữ liệu login phải có username (string) và password (string)."
+Router (fastapi)	Định hướng (Routes)	"Nếu ai gọi /api/login bằng phương thức POST, hãy chuyển cho Controller."
+Controller (python)	Nghiệp vụ (Logic)	"Vào SQL Server tìm xem có ai tên này không, mật khẩu có khớp không."
+Luồng chạy thực tế sẽ như thế này:
+Client (JS/Ajax) gửi một gói JSON lên /auth/api/login.
+Schema nhảy vào kiểm tra:
+Nếu JSON thiếu trường username -> Trả lỗi 422 ngay lập tức (Router và Controller chưa cần làm gì cả).
+Nếu JSON hợp lệ -> Chuyển dữ liệu sang Router.
+Router nhận dữ liệu sạch từ Schema, rồi gọi: AuthController.login(data.username, data.password).
+Controller kết nối SQL Server, lấy kết quả trả về cho Router.
+Router đóng gói kết quả đó (có thể kèm theo việc lưu Session) và gửi trả về cho Client.
+------------------------------
+tôi sẽ "tái cấu trúc" (refactor) chúng sang chuẩn FastAPI (Schema - Router - Controller).
+Để đảm bảo tính đồng bộ, tôi sẽ chuyển đổi theo quy tắc sau:
+1. controllers/: Giữ lại logic SQL (pyodbc), nhưng chuyển sang dạng Class hoặc Static Method để dễ quản lý.
+2. views/ -> routers/: Chuyển các Routes sang APIRouter, tách biệt giữa Route trả về HTML (cho Giao diện) và Route trả về JSON (cho API).
+3. schemas/: Tôi sẽ tự tạo thêm file này dựa trên dữ liệu bạn gửi để tối ưu việc validate dữ liệu đầu vào.
+4. database.py: Chuyển sang dạng yield connection để tận dụng Dependency Injection của FastAPI.
+--------------------------
+// 
+pip install pydantic-settings
+// Mặc định passlib chỉ là bộ khung. Để thực hiện việc băm (hash) mật khẩu bằng thuật toán bcrypt (tiêu chuẩn bảo mật hiện nay), nó cần thư viện bcrypt đi kèm.
+pip install "passlib[bcrypt]"
+------------------------------ Router + Schema = View (Flask)
+Thực ra, Router + Schema tốt hơn rất nhiều khi dự án của bạn bắt đầu có hơn 5-10 chức năng. Nếu bạn chỉ làm 1-2 trang web nhỏ, dùng dict như cũ sẽ nhanh hơn, nhưng với một hệ thống HR (Nhân sự) có nhiều bảng dữ liệu, Schema mang lại 3 lợi ích "sống còn":
+1. Tự động hóa việc kiểm tra lỗi (Validation)
+Cách cũ (dict): Bạn phải viết if not data.get("username"): return "Thiếu tên". Nếu có 20 trường thông tin nhân viên, bạn sẽ phải viết 20 dòng if.
+Cách mới (Schema): Bạn chỉ cần định nghĩa username: str. Nếu Client gửi thiếu hoặc gửi sai kiểu dữ liệu, FastAPI tự động chặn lại và trả lỗi 422 ngay lập tức. Controller của bạn không bao giờ phải xử lý dữ liệu "rác".
+2. Tài liệu API "Xịn" tự động (Swagger UI)
+Đây là điểm ăn tiền nhất của FastAPI. Khi bạn dùng Schema, bạn chỉ cần truy cập /docs, hệ thống sẽ tự tạo một trang web:
+Liệt kê tất cả API.
+Hiển thị chính xác Client cần gửi lên cái gì (JSON mẫu).
+Cho phép bạn ấn nút "Try it out" để test trực tiếp mà không cần dùng Postman.
+Nếu dùng dict, trang này sẽ trống không, bạn không biết API đó yêu cầu dữ liệu gì.
+3. Gợi ý code (Intellisense) và Bảo trì
+Khi bạn gõ data., VS Code sẽ hiện ra ngay username, password. Bạn không lo bị gõ nhầm tên biến như khi dùng data.get("usernam") (thiếu chữ e).
+Sau này bạn muốn đổi tên cột hay thêm trường, bạn chỉ cần sửa ở Schema, tất cả các chỗ khác sẽ tự động báo lỗi nếu bạn quên cập nhật.
+Tóm lại:
+Router: Giúp tách biệt "Đường đi" (URL) ra khỏi "Bộ não" (Controller).
+Schema: Giúp "Dữ liệu" luôn sạch sẽ và có quy tắc.
+Nếu bạn muốn làm nhanh kiểu "mì ăn liền" như Flask, bạn có thể bỏ Schema. Nhưng nếu muốn làm dự án SMILE HR chuyên nghiệp, dễ mở rộng sau này, tôi khuyên bạn nên dùng Schema.
+Bạn muốn thử áp dụng Schema cho file employee_ctl.py tiếp theo không? Tôi sẽ chỉ cho bạn thấy nó giúp quản lý hàng chục thông tin nhân sự (Họ tên, Ngày sinh, Lương, Phòng ban...) nhàn như thế nào!
+----------------------------
+Trong FastAPI, chúng ta sẽ tối ưu Controller bằng cách nhận db (Connection) từ Router. Điều này giúp tránh việc mở/đóng kết nối quá nhiều lần trong một Request (ví dụ: khi hàm Export gọi hàm Get All).
+Tại sao cách này tốt hơn?
+1. Tiết kiệm bộ nhớ: StreamingResponse của FastAPI giúp gửi file Excel lớn mà không làm treo server.
+2. Validate chuẩn: Nếu JS gửi lên thiếu IdDepartment, FastAPI sẽ báo lỗi ngay ở lớp Schema, Controller của bạn không bị "văng" lỗi SQL.
+3. Async hỗ trợ: Bạn có thể dùng await file.read() để nhận file import mà không chặn các request khác của người dùng.
+------------------------------
+1. Schema dành cho "Cửa ngõ" (Router)
+Schema (Pydantic) sinh ra để ép kiểu và validate dữ liệu từ bên ngoài gửi vào (Request) hoặc định nghĩa cấu trúc dữ liệu trả về cho Client (Response).
+Khi bạn dùng data: SaveViewRightsRequest trong Router, FastAPI tự động kiểm tra xem EmployeeID có phải là số không, DeptIDs có phải là mảng không. Nếu sai, nó báo lỗi ngay lập tức.
+2. Dict dành cho "Nội bộ" (Controller & SQL)
+Trong permission_ctl.py, chúng ta vẫn dùng dict vì 2 lý do kỹ thuật của thư viện pyodbc:
+Tính linh hoạt của SQL: Câu lệnh STUFF FOR XML PATH của bạn trả về một cấu trúc "động" (cột ViewDepts không cố định, có thể null hoặc chuỗi dài). pyodbc trả về dữ liệu dạng Row Object. Để FastAPI có thể biến nó thành JSON gửi về trình duyệt, chúng ta phải đưa nó về dạng dict (dạng dữ liệu Python cơ bản nhất).
+Hiệu năng: Việc ép toàn bộ kết quả từ SQL vào một Class Schema ngay tại Controller sẽ làm chậm tốc độ xử lý nếu danh sách nhân viên lên đến hàng nghìn người.
+
+Controller: Dùng dict để "nhào nặn" dữ liệu từ SQL Server cho nhanh và linh hoạt.
+Router: Dùng Schema để "đóng gói" và kiểm soát chất lượng dữ liệu trước khi trả về cho Frontend.
+-----------------------------------
+Để ghi log cho toàn bộ hệ thống một cách tự động mà không phải viết lại hàm write_user_log trong từng Router, cách tối ưu nhất trong FastAPI là sử dụng Middleware.
+Middleware sẽ giống như một "trạm kiểm soát" ở cổng chính, nó tự động bắt lấy mọi Request (thêm, sửa, xóa) và ghi log trước khi trả kết quả về cho khách hàng.
+1. Cập nhật database.py (Hàm ghi log hỗ trợ Middleware)
+Chúng ta chỉnh lại một chút để hàm này nhận các thông tin thô từ Middleware.
+python
+def write_system_log(user_name: str, method: str, path: str, status_code: int, ip: str):
+    """Ghi log tự động cho mọi request"""
+    try:
+        # Chỉ ghi log cho các thao tác thay đổi dữ liệu (POST, PUT, DELETE)
+        # Hoặc ghi tất cả tùy bạn, ở đây tôi lọc để tránh rác DB
+        if method in ["POST", "PUT", "DELETE"] or "api" in path:
+            with pyodbc.connect(settings.connection_string) as conn:
+                cursor = conn.cursor()
+                sql = """
+                    INSERT INTO UserLogs (UserID, Action, IPAddress, CreatedAt) 
+                    VALUES (?, ?, ?, GETDATE())
+                """
+                action = f"{method} {path} - Status: {status_code}"
+                cursor.execute(sql, (user_name, action, ip))
+                conn.commit()
+    except Exception as e:
+        print(f"❌ Lỗi Middleware Log: {e}")
+Hãy thận trọng khi sử dụng mã.
+
+2. Cấu hình Middleware trong main.py
+Bạn thêm đoạn code này vào file main.py, ngay sau phần cấu hình SessionMiddleware.
+python
+from fastapi import Request
+from database import write_system_log
+import time
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    # 1. Lấy thông tin trước khi xử lý Request
+    user_name = request.session.get("user_name", "Anonymous")
+    ip = request.client.host
+    path = request.url.path
+    method = request.method
+
+    # 2. Cho phép Request đi tiếp vào Router/Controller
+    response = await call_next(request)
+
+    # 3. Sau khi xử lý xong, ghi log kết quả (Status code)
+    # Không cần dùng BackgroundTasks ở đây vì middleware chạy độc lập
+    write_system_log(user_name, method, path, response.status_code, ip)
+    
+    return response
+Hãy thận trọng khi sử dụng mã.
+
+3. Lợi ích vượt trội của cách này:
+Không bỏ sót: Bất kể bạn thêm Router mới nào sau này (Lương, Chấm công...), Middleware cũng tự động ghi log mà bạn không cần sửa code ở Router đó.
+Sạch sẽ: Các file employee_rt.py, permission_rt.py của bạn sẽ cực kỳ gọn vì không còn dòng background_tasks.add_task(write_user_log...).
+Chi tiết: Bạn sẽ biết chính xác User nào đang gọi API nào và kết quả trả về có lỗi (500) hay thành công (200) không.
+4. Lưu ý về bảng UserLogs
+Hãy đảm bảo cột Action trong bảng UserLogs của bạn đủ dài (nvarchar(max)) vì chuỗi log từ Middleware sẽ bao gồm cả Method và URL.
+Bạn có muốn tôi hướng dẫn cách tạo một Trang xem Nhật ký (Log Viewer) ngay trên giao diện để Admin có thể theo dõi xem hôm nay ai đã làm gì không?
+------------------------------
+Trong FastAPI, middleware được xếp chồng như lớp vỏ hành. Lệnh app.add_middleware khai báo sau sẽ nằm ở lớp bên trong.
+1. Khi Request đến: Nó đi qua log_requests (lớp ngoài) -> rồi mới qua SessionMiddleware (lớp trong).
+2. Khi Response quay về: Nó đi từ SessionMiddleware (đã nạp session vào request) -> rồi mới quay lại log_requests. Lúc này, hàm log_requests mới có thể đọc được request.session.

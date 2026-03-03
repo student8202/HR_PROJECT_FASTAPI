@@ -1,5 +1,5 @@
 @echo off
-set NGINX_PATH=C:\nginx
+set NGINX_PATH=C:\nginx_fastapi
 cd /d "%NGINX_PATH%"
 
 :: Lấy thời gian

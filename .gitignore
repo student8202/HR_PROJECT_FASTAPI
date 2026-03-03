@@ -1,0 +1,5 @@
+# Loại bỏ tất cả thư mục __pycache__ ở mọi cấp độ
+**/__pycache__/
+*.bak          # Không đẩy file backup lên
+*.log          # Không đẩy file log
+secrets.sql    # File chứa mật khẩu/thông số riêng

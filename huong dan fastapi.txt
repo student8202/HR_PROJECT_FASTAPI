@@ -945,3 +945,121 @@ Bước tiếp theo: Bạn có muốn tôi viết một file main.py mẫu tích
 Bước 1: Chạy file run_app.bat của FastAPI (Uvicorn) trước. Đợi nó hiện chữ Uvicorn running on http://127.0.0.1:6066.
 Bước 2: Chạy file run_server.bat của Nginx.
 Bước 3: Mở trình duyệt gõ http://localhost.
+----------------------------- swagger
+@router.get("/api/secret-data", include_in_schema=False)
+async def secret_api():
+    return {"message": "API này vẫn chạy nhưng không hiện trên /docs"}
+# Trong file main.py khi đăng ký router
+app.include_router(admin_router.router, include_in_schema=False)
+Thay vì ẩn hoàn toàn, bạn có thể dùng Tags để nhóm chúng vào mục "System" hoặc "Internal" để phân biệt với các API nghiệp vụ chính:
+@router.get("/log", tags=["Internal"])
+------------------------------------------ template FastAPI
+Để xây dựng một hệ thống HR chuyên nghiệp với FastAPI, thay thế hoàn toàn IIS bằng Nginx và tận dụng pyodbc cho SQL Server, bạn cần một cấu trúc Enterprise MVC.
+Dưới đây là Template chuẩn chỉnh, bảo mật và hiệu năng cao nhất cho dự án SMILE HR của bạn.
+1. Cấu trúc thư mục chuẩn (Enterprise Layout)
+text
+SMILE_HR_PRO/
+├── core/                # Cấu hình hệ thống & Bảo mật
+│   ├── config.py        # Đọc biến môi trường, Secret Key
+│   └── security.py      # Xử lý Hash Password (bcrypt) & JWT
+├── database.py          # Quản lý Connection Pooling (pyodbc)
+├── schemas/             # Pydantic Models (Kiểm soát dữ liệu vào/ra)
+│   ├── employee.py      # Định nghĩa Schema cho Nhân viên
+│   └── auth.py          # Schema cho Login/Token
+├── controllers/         # Logic nghiệp vụ & SQL Store Procedures
+│   ├── employee_ctl.py
+│   └── attendance_ctl.py
+├── routers/             # API Endpoints (Thay thế Blueprint)
+│   ├── employee_rt.py
+│   └── auth_rt.py
+├── static/              # CSS, JS, Images (Nginx phục vụ)
+├── templates/           # Jinja2 HTML (Giao diện)
+├── main.py              # File chạy chính (Uvicorn)
+└── requirements.txt     # Danh sách thư viện
+Hãy thận trọng khi sử dụng mã.
+
+2. File database.py (Tối ưu kết nối)
+Sử dụng contextmanager để đảm bảo luôn đóng kết nối, tránh treo SQL Server.
+python
+import pyodbc
+from contextlib import contextmanager
+
+CONN_STR = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=localhost;DATABASE=SMILE_HR;UID=smile;PWD=password"
+
+@contextmanager
+def get_db():
+    conn = pyodbc.connect(CONN_STR)
+    try:
+        yield conn
+    finally:
+        conn.close()
+Hãy thận trọng khi sử dụng mã.
+
+3. File schemas/employee.py (Pydantic - "Người gác cổng")
+Giúp FastAPI tự động kiểm tra dữ liệu trước khi gọi SQL.
+python
+from pydantic import BaseModel, EmailStr, Field
+
+class EmployeeCreate(BaseModel):
+    fullname: str = Field(..., min_length=3, max_length=100)
+    email: EmailStr
+    dept_id: int
+    salary: float = Field(gt=0) # Lương phải lớn hơn 0
+Hãy thận trọng khi sử dụng mã.
+
+4. File routers/employee_rt.py (Router chuyên nghiệp)
+Tích hợp ghi Log và xử lý lỗi tập trung.
+python
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.templating import Jinja2Templates
+from schemas.employee import EmployeeCreate
+from database import get_db
+
+router = APIRouter(prefix="/employees", tags=["Nhân Sự"])
+templates = Jinja2Templates(directory="templates")
+
+@router.post("/create", include_in_schema=True)
+async def create_emp(emp: EmployeeCreate):
+    with get_db() as conn:
+        cursor = conn.cursor()
+        try:
+            # Gọi Store Procedure trực tiếp
+            cursor.execute("{CALL usp_InsertEmployee (?, ?, ?, ?)}", 
+                           (emp.fullname, emp.email, emp.dept_id, emp.salary))
+            conn.commit()
+            return {"status": "success", "message": "Thêm nhân viên thành công"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/view")
+async def view_employees(request: Request):
+    # Route này trả về giao diện HTML
+    return templates.TemplateResponse("employee.html", {"request": request})
+Hãy thận trọng khi sử dụng mã.
+
+5. File main.py (Hợp nhất sức mạnh)
+python
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
+from routers import employee_rt, auth_rt
+
+app = FastAPI(title="SMILE HR Professional", docs_url="/api-docs")
+
+# Middleware quản lý Session người dùng
+app.add_middleware(SessionMiddleware, secret_key="SMILE_SECRET_KEY")
+
+# Nginx sẽ trỏ vào đây để lấy file tĩnh
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Đăng ký các Module
+app.include_router(employee_rt.router)
+app.include_router(auth_rt.router)
+Hãy thận trọng khi sử dụng mã.
+
+6. Tại sao Template này "Chuyên nghiệp" hơn Flask?
+Chống treo hệ thống: Nhờ contextmanager trong database.py, kết nối SQL luôn được giải phóng ngay cả khi code bị lỗi.
+Chống dữ liệu rác: Pydantic sẽ từ chối các yêu cầu có Email sai định dạng hoặc tên quá ngắn ngay lập tức, tiết kiệm tài nguyên cho SQL Server.
+Hỗ trợ Nginx tối đa: Cấu trúc phân tách /static rõ ràng giúp Nginx làm Reverse Proxy cực kỳ mượt mà.
+Async Ready: Mọi Route đều có thể dùng async def để xử lý hàng ngàn nhân viên truy cập cùng lúc mà không nghẽn mạch.
+Bạn đã cài đặt bộ thư viện fastapi, uvicorn, pydantic chưa? Tôi có thể gửi cho bạn file security.py để xử lý đăng nhập bằng JWT (Token bảo mật hơn Session thông thường) nếu bạn muốn nâng cấp tính chuyên nghiệp lên mức tối đa.
