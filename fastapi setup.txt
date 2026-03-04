@@ -1,4 +1,4 @@
-SMILE_HR_PRO/
+SMILE_HR_FASTAPI/
 ├── core/                # Cấu hình hệ thống & Bảo mật
 │   ├── config.py        # Đọc biến môi trường, Secret Key
 │   └── security.py      # Xử lý Hash Password (bcrypt) & JWT
@@ -16,7 +16,29 @@ SMILE_HR_PRO/
 ├── templates/           # Jinja2 HTML (Giao diện)
 ├── main.py              # File chạy chính (Uvicorn)
 └── requirements.txt     # Danh sách thư viện
------------------------------
+----------------------------- dieu chinh project
+SMILE_HR_FASTAPI/
+├── core/
+│   ├── config.py
+│   └── security.py
+├── database.py
+├── schemas/
+│   ├── employee.py
+│   └── auth.py
+├── controllers/         # Điều phối request/response
+├── services/            # <--- THÊM: Logic nghiệp vụ & Gọi Store Procedures
+├── routers/
+├── static/
+├── templates/
+├── logs/                # <--- THÊM: Lưu vết hệ thống
+├── tests/               # <--- THÊM: Unit test để kiểm tra logic
+├── main.py
+├── .env                 # <--- THÊM: Chứa database string, secret key
+├── .env.example         # <--- THÊM: Mẫu cấu hình
+├── .gitignore           # <--- THÊM: Chặn file rác
+├── requirements.txt
+└── README.md            # <--- THÊM: Hướng dẫn dự án
+--------------------------------------------------
 pip install -r requirements.txt
 Lệnh này sẽ tự động đọc file và cài đặt "tận răng" tất cả thư viện đúng phiên bản bạn cần. Tham khảo tài liệu chính thức về pip install.
 3. Tích hợp hoàn hảo với File .bat của bạn
@@ -200,3 +222,22 @@ from loguru import logger
 
 # Thay print bằng logger.info
 logger.info(f"Đang xử lý: {fullname}")
+-------------------------
+sử dung .env
+pip install python-dotenv pydantic-settings
+-------------------------------
+Trong kiến trúc FastAPI hiện đại (hoặc các dự án lớn), Controller đóng vai trò là "người điều phối" (Orchestrator).
+Dưới đây là cách phân chia nhiệm vụ mới:
+Router (routers/): Định nghĩa URL (ví dụ: /departments/save).
+Controller (controllers/): Nhận Request, gọi Service phù hợp, xử lý lỗi HTTP (400, 404, 500) và trả về JSON.
+Service (services/): Chứa logic nghiệp vụ (kiểm tra trùng tên, kiểm tra nhân viên).
+CRUD (crud/): Chỉ chứa các câu lệnh SQL thuần túy (SELECT, INSERT, UPDATE).
+Tại sao Router "càng lười" thì dự án càng tốt?
+Tránh lặp code: Nếu bạn viết logic trả về {"status": "success"} ở Router, khi bạn có 100 cái Router, bạn phải viết 100 lần. Nếu sau này sếp muốn đổi thành {"result": "ok"}, bạn phải đi sửa 100 chỗ.
+Tách biệt trách nhiệm: Router lo việc "Đường đi", Controller lo việc "Phản hồi", Service lo việc "Tính toán".
+Dễ bảo trì: Khi bạn sửa cấu trúc JSON trong Controller, mọi Router gọi nó sẽ tự động cập nhật theo mà không cần chạm vào file Router.
+@router.post("/api/save")
+async def save_department(data: DepartmentSaveRequest, db: Connection = Depends(get_db)):
+    return DepartmentController.save(db, data)
+----------------------------
+

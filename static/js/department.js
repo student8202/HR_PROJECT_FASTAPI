@@ -30,11 +30,18 @@ function delDept(row) {
                 success: function (response) {
                     deptTable.ajax.reload();
                     loadDeptsToDropdown();
-                    Swal.fire('Đã xóa!', response.message, 'success');
+                    Swal.fire({
+                        title: 'Đã xóa!',
+                        text: response.message,
+                        icon: 'success',
+                        timer: 2000, // <--- Tự đóng sau 2000ms
+                        timerProgressBar: true, // Hiện thanh đếm ngược cho đẹp
+                        showConfirmButton: true // Ẩn nút "OK" vì nó tự đóng rồi
+                    }) 
                 },
                 error: function (xhr) {
                     // Lấy tin nhắn lỗi từ server (Ví dụ: "Không thể xóa! Đang có 5 nhân viên...")
-                    const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : 'Lỗi hệ thống!';
+                    const errorMsg = xhr.responseJSON ? xhr.responseJSON.detail.message : 'Lỗi hệ thống!';
                     Swal.fire({
                         title: 'Cảnh báo!',
                         text: errorMsg,
@@ -75,11 +82,19 @@ function saveDept() {
             $('#deptModal').modal('hide');
             deptTable.ajax.reload();
             loadDeptsToDropdown(); // Cập nhật dropdown bên tab nhân viên
-            Swal.fire(t(res.message), '', 'success');
+            console.log(res)
+            Swal.fire({
+                        title: 'Đã Lưu!',
+                        text: t(res.message),
+                        icon: 'success',
+                        timer: 2000, // <--- Tự đóng sau 2000ms
+                        timerProgressBar: true, // Hiện thanh đếm ngược cho đẹp
+                        showConfirmButton: true // Ẩn nút "OK" vì nó tự đóng rồi
+                    }) 
         },
         error: function (xhr) {
             // Lấy mã lỗi (ví dụ: 'err_dept_exists') và dịch qua hàm t()
-            const errorKey = xhr.responseJSON ? xhr.responseJSON.message : t('err_dept_exists');
+            const errorKey = xhr.responseJSON ? xhr.responseJSON.detail.message : t('err_dept_exists');
             Swal.fire(t(errorKey), '', 'error');
         }
     });

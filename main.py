@@ -53,8 +53,26 @@ async def openapi(username: str = Depends(get_current_username)):
 # Ép terminal dùng UTF-8 để hiện tiếng Việt
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 # Xóa cấu hình mặc định và thêm cấu hình hỗ trợ UTF-8 cho Terminal
+# Xóa cấu hình mặc định
 logger.remove()
-logger.add(sys.stderr, colorize=True, format="<green>{time}</green> | <level>{message}</level>", diagnose=False)
+
+# Thêm lại cấu hình với dấu ngoặc nhọn chuẩn {}
+logger.add(
+    sys.stderr, 
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{message}</cyan>", 
+    colorize=True, 
+    backtrace=True, 
+    diagnose=True
+)
+
+# Ghi ra file (đảm bảo encoding utf-8 để không lỗi font tiếng Việt)
+logger.add(
+    "logs/app.log", 
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
+    encoding="utf-8", 
+    rotation="10 MB",
+    retention="10 days"
+)
 # --- QUAN TRỌNG: THỨ TỰ MIDDLEWARE ---
 
 # --- CẤU HÌNH MIDDLEWARE ---

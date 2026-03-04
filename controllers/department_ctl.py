@@ -1,55 +1,46 @@
+from fastapi import HTTPException, status
 from pyodbc import Connection
+from services.department_service import DepartmentService
+from crud.department_crud import DepartmentCRUD
 from schemas.department import DepartmentSaveRequest
+from loguru import logger
+import os
 
 class DepartmentController:
     @staticmethod
     def get_all(db: Connection):
-        cursor = db.cursor()
-        cursor.execute("SELECT DeptID, DeptName FROM Departments ORDER BY DeptName")
-        # Cách lấy tên cột chuẩn nhất cho FastAPI JSON
-        columns = [column[0] for column in cursor.description]
-        results = []
-        for row in cursor.fetchall():
-            results.append(dict(zip(columns, row)))
-        return results
+        # Lấy dữ liệu thô từ CRUD và trả về
+        return DepartmentCRUD.get_all(db)
 
     @staticmethod
     def save(db: Connection, data: DepartmentSaveRequest):
-        cursor = db.cursor()
-        dept_name = data.DeptName.strip()
-        dept_id = data.DeptID
-
-        # 1. Kiểm tra trùng tên
-        if dept_id:
-            cursor.execute("SELECT COUNT(*) FROM Departments WHERE DeptName = ? AND DeptID != ?", (dept_name, dept_id))
-        else:
-            cursor.execute("SELECT COUNT(*) FROM Departments WHERE DeptName = ?", (dept_name,))
-        
-        if cursor.fetchone()[0] > 0:
-            return False, "Tên phòng ban đã tồn tại!"
-
-        # 2. Thực hiện Lưu/Cập nhật
-        try:
-            if dept_id:
-                cursor.execute("UPDATE Departments SET DeptName=? WHERE DeptID=?", (dept_name, dept_id))
-            else:
-                cursor.execute("INSERT INTO Departments (DeptName) VALUES (?)", (dept_name,))
-            db.commit()
-            return True, "Lưu thành công"
-        except Exception as e:
-            db.rollback()
-            raise e
+        # Dòng này sẽ in ra đường dẫn file mà Python đang thực sự đọc
+        logger.info(f"DEBUG: File đang chạy nằm tại: {os.path.abspath(__file__)}")
+        # Gọi Service và nhận về bộ (tuple): success, message_text
+        success, message_text = DepartmentService.save(db, data)
+        logger.info(f"DEBUG: Service trả về -> success={success}, msg={message_text}")
+        if not success:
+            # Trả về lỗi 400 để AJAX nhảy vào hàm error
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail={"message": message_text}
+            )
+        logger.info(f"messane_text save dept controller: {message_text}")
+        # PHẢI dùng biến message_text thay vì ghi chữ "message" trong nháy kép
+        return {
+            "status": "success" if success else "error", 
+            "message": message_text
+        }
 
     @staticmethod
     def delete(db: Connection, dept_id: int):
-        cursor = db.cursor()
-        # Kiểm tra ràng buộc nhân viên
-        cursor.execute("SELECT COUNT(*) FROM Employees WHERE IdDepartment = ?", (dept_id,))
-        count = cursor.fetchone()[0]
-        
-        if count > 0:
-            return False, f"Không thể xóa! Đang có {count} nhân viên thuộc bộ phận này."
-        
-        cursor.execute("DELETE FROM Departments WHERE DeptID = ?", (dept_id,))
-        db.commit()
-        return True, "Xóa bộ phận thành công."
+        success, message_text  = DepartmentService.delete(db, dept_id)
+        logger.info(f"messane_text controller: {message_text}")
+        if not success:
+            # Trả về lỗi 400 để AJAX nhảy vào hàm error
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail={"message": message_text}
+            )
+            
+        return {"status": "success" if success else "error", "message": message_text} # Mặc định là 200 OK

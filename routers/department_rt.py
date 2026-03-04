@@ -12,14 +12,9 @@ async def get_departments(db: Connection = Depends(get_db)):
 
 @router.post("/api/save")
 async def save_department(data: DepartmentSaveRequest, db: Connection = Depends(get_db)):
-    success, message = DepartmentController.save(db, data)
-    if not success:
-        return {"status": "error", "message": message}
-    return {"status": "success", "message": message}
+    return DepartmentController.save(db, data)
 
 @router.delete("/api/delete/{dept_id}")
 async def delete_department(dept_id: int, db: Connection = Depends(get_db)):
-    success, message = DepartmentController.delete(db, dept_id)
-    if not success:
-        return {"status": "error", "message": message}
-    return {"status": "success", "message": message}
+    return DepartmentController.delete(db, dept_id)
+   
